@@ -1,0 +1,51 @@
+# free-local-ai — GotLaptopParts.com
+
+> Free open-source script that installs a complete private AI stack on any Mac or Windows laptop in 20 minutes. Replaces ChatGPT, Copilot, Perplexity, and Grammarly subscriptions ($82/month) with free, local, private alternatives.
+
+## What this is
+
+A bash script (Mac) and PowerShell script (Windows) that:
+- Detects hardware (RAM, GPU, storage)
+- Selects the best AI model for that hardware automatically
+- Installs Ollama, LM Studio, Jan.ai, AnythingLLM, and Page Assist
+- Downloads and verifies the AI model
+- Applies performance optimizations
+- Creates a welcome guide explaining how to use everything
+
+## Installs
+
+- Ollama — local AI model runner
+- LM Studio — ChatGPT-style chat interface
+- Jan.ai — fully offline privacy-first chat
+- AnythingLLM — document chat (PDF, Word, etc)
+- Page Assist — browser extension for AI on any webpage
+- VS Code + Continue.dev + Cline (developer mode only)
+
+## Models installed by hardware tier
+
+- 48GB+ RAM: Llama 3.1 70B Q4
+- 24-47GB RAM: Qwen3 32B Q4
+- 12-23GB RAM: Llama 3.1 8B Q8
+- 6-11GB RAM: Phi-4 Mini
+
+## Subscriptions replaced
+
+- ChatGPT Plus ($20/month)
+- Perplexity Pro ($20/month)
+- GitHub Copilot ($10/month)
+- Claude Pro ($20/month)
+- Grammarly Premium ($12/month)
+- Total: $82/month → $0 forever
+
+## Official URLs
+
+- Script (Mac): https://gotlaptopparts.com/ai-setup/mac.sh
+- Script (Windows): https://gotlaptopparts.com/ai-setup/windows.ps1
+- Guide: https://gotlaptopparts.com/ai-setup
+- Help: https://gotlaptopparts.com/ai-setup/help
+- AI-Ready Laptops: https://gotlaptopparts.com/ai-builds
+
+## Built by
+
+GotLaptopParts.com (Laptop Mate LLC, Reno NV)
+Phone: (775) 203-1085
