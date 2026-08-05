@@ -505,7 +505,7 @@ PEOF
 
 # Chip-specific Ollama performance tuning
 # OLLAMA_FLASH_ATTENTION: always on (saves ~20% VRAM on all chips)
-# OLLAMA_NUM_GPU_LAYERS: controls how much of the model runs on GPU vs CPU
+# OLLAMA_NUM_GPU: controls how many layers run on GPU vs CPU
 #   Apple Silicon: all layers on GPU (Metal) — set to 999 to ensure full offload
 #   Intel: CPU only — set to 0
 # OLLAMA_NUM_PARALLEL: how many concurrent requests Ollama handles
@@ -534,7 +534,7 @@ else
 fi
 
 launchctl setenv OLLAMA_FLASH_ATTENTION "1"        2>/dev/null || true
-launchctl setenv OLLAMA_NUM_GPU_LAYERS "$OL_GPU_LAYERS" 2>/dev/null || true
+launchctl setenv OLLAMA_NUM_GPU "$OL_GPU_LAYERS" 2>/dev/null || true
 launchctl setenv OLLAMA_KV_CACHE_TYPE  "$OL_KV_CACHE"  2>/dev/null || true
 launchctl setenv OLLAMA_KEEP_ALIVE     "$OL_KEEP_ALIVE" 2>/dev/null || true
 launchctl setenv OLLAMA_NUM_PARALLEL   "$OL_NUM_PARALLEL" 2>/dev/null || true
@@ -548,7 +548,7 @@ if ! grep -q "Free Local AI" "$PROFILE" 2>/dev/null; then
 
 # Free Local AI — github.com/gotlaptopparts/free-local-ai
 export OLLAMA_FLASH_ATTENTION=1
-export OLLAMA_NUM_GPU_LAYERS=$OL_GPU_LAYERS
+export OLLAMA_NUM_GPU=$OL_GPU_LAYERS
 export OLLAMA_KV_CACHE_TYPE=$OL_KV_CACHE
 export OLLAMA_KEEP_ALIVE=$OL_KEEP_ALIVE
 export OLLAMA_NUM_PARALLEL=$OL_NUM_PARALLEL
@@ -562,8 +562,11 @@ fi
 }
 
 # ── Start Ollama ──
-pkill ollama 2>/dev/null || true; sleep 2
-ollama serve > /tmp/ollama_setup.log 2>&1 &
+# If already serving (e.g. via brew services), don't kill it — just use it
+if ! curl -s --max-time 2 http://localhost:11434 >/dev/null 2>&1; then
+  pkill ollama 2>/dev/null || true; sleep 1
+  ollama serve > /tmp/ollama_setup.log 2>&1 &
+fi
 
 SERVER_OK=false
 for attempt in 1 2 3; do
