@@ -438,11 +438,13 @@ New-Item -ItemType Directory -Path $LMSPresetDir -Force | Out-Null
 "@ | Out-File -FilePath "$LMSPresetDir\$AIName.preset.json" -Encoding UTF8
 
 # Ollama env vars -- system level
+# Hobbyist: unload model after 5 min idle to free RAM. Developer: keep loaded forever.
+$KeepAlive = if ($Audience -eq "developer") { "-1" } else { "5m" }
 [System.Environment]::SetEnvironmentVariable("OLLAMA_FLASH_ATTENTION","1","Machine")
-[System.Environment]::SetEnvironmentVariable("OLLAMA_KEEP_ALIVE","-1","Machine")
+[System.Environment]::SetEnvironmentVariable("OLLAMA_KEEP_ALIVE",$KeepAlive,"Machine")
 [System.Environment]::SetEnvironmentVariable("OLLAMA_NUM_PARALLEL","1","Machine")
 [System.Environment]::SetEnvironmentVariable("OLLAMA_MAX_LOADED_MODELS","1","Machine")
-$env:OLLAMA_FLASH_ATTENTION="1"; $env:OLLAMA_KEEP_ALIVE="-1"
+$env:OLLAMA_FLASH_ATTENTION="1"; $env:OLLAMA_KEEP_ALIVE=$KeepAlive
 $env:OLLAMA_NUM_PARALLEL="1";    $env:OLLAMA_MAX_LOADED_MODELS="1"
 
 # Ultimate Performance power plan
