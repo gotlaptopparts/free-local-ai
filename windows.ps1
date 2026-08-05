@@ -105,9 +105,33 @@ $Warnings = [System.Collections.ArrayList]@()
 function Add-Warn { param($w) [void]$Warnings.Add($w) }
 
 # ── Model chain ──
-$Models  = @("llama3.1:70b",  "qwen3:32b",   "llama3.1:8b", "phi4-mini")
-$MNames  = @("Llama 3.1 70B", "Qwen3 32B",   "Llama 3.1 8B","Phi-4 Mini")
-$MSizes  = @(42,               20,             9,              3)
+$Models        = @("llama3.1:70b",  "qwen3:32b",   "llama3.1:8b", "phi4-mini")
+$MNames        = @("Llama 3.1 70B", "Qwen3 32B",   "Llama 3.1 8B","Phi-4 Mini")
+# Fallback sizes in GB (used if registry is unreachable)
+$MSizesFallback = @(40,              19,             5,              3)
+
+function Get-ModelSizeGb {
+  param([string]$ModelTag, [int]$Fallback)
+  $name = $ModelTag.Split(':')[0]
+  $tag  = $ModelTag.Split(':')[1]
+  try {
+    $resp = Invoke-WebRequest -Uri "https://registry.ollama.ai/v2/library/$name/manifests/$tag" `
+              -UseBasicParsing -TimeoutSec 8 -ErrorAction Stop
+    $manifest = $resp.Content | ConvertFrom-Json
+    $bytes = ($manifest.layers | Where-Object { $_.mediaType -like "*model*" } |
+              Measure-Object -Property size -Sum).Sum
+    if ($bytes -gt 0) {
+      return [math]::Ceiling($bytes / 1GB)
+    }
+  } catch {}
+  return $Fallback
+}
+
+# Fetch live sizes (internet confirmed available at this point in the script flow)
+$MSizes = @()
+for ($i = 0; $i -lt $Models.Count; $i++) {
+  $MSizes += Get-ModelSizeGb -ModelTag $Models[$i] -Fallback $MSizesFallback[$i]
+}
 
 # ─────────────────────────────────────────────
 Clear-Host
