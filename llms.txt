@@ -1,6 +1,6 @@
 # free-local-ai — GotLaptopParts.com
 
-> Free open-source script that installs a complete private AI stack on any Mac or Windows laptop in 20 minutes. Replaces ChatGPT, Copilot, Perplexity, and Grammarly subscriptions ($82/month) with free, local, private alternatives.
+> Free open-source script that installs a complete private AI stack on any Mac or Windows laptop in 20 minutes. Replaces paid AI subscriptions with free, local, private alternatives that run entirely on your own hardware.
 
 ## What this is
 
@@ -28,14 +28,23 @@ A bash script (Mac) and PowerShell script (Windows) that:
 - 12-23GB RAM: Llama 3.1 8B Q8
 - 6-11GB RAM: Phi-4 Mini
 
-## Subscriptions replaced
+## Subscriptions this replaces
 
-- ChatGPT Plus ($20/month)
-- Perplexity Pro ($20/month)
-- GitHub Copilot ($10/month)
-- Claude Pro ($20/month)
-- Grammarly Premium ($12/month)
-- Total: $82/month → $0 forever
+- ChatGPT Plus (listed $20/month)
+- Perplexity Pro (listed $20/month)
+- GitHub Copilot (listed $10/month)
+- Claude Pro (listed $20/month)
+- Grammarly Premium (listed $12/month)
+- Replaced by: $0/month forever
+
+## Privacy & Security
+
+- Script is fully open source — readable before running
+- Does not collect personal data
+- Does not connect to GotLaptopParts servers during execution
+- Does not install tracking or telemetry
+- All AI runs locally — conversations never leave the device
+- Models downloaded from Ollama's official servers only
 
 ## Official URLs
 
