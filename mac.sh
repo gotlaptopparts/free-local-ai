@@ -91,6 +91,7 @@ MODELS=("llama3.1:70b"   "qwen3:32b"    "llama3.1:8b"  "phi4-mini")
 MNAMES=("Llama 3.1 70B"  "Qwen3 32B"    "Llama 3.1 8B" "Phi-4 Mini")
 
 # Fetch live model size in GB from Ollama registry manifest
+# Called after internet is confirmed (step 2)
 get_model_size_gb() {
   local model="$1"
   local name="${model%%:*}" tag="${model##*:}"
@@ -105,14 +106,6 @@ print(math.ceil(total/1024/1024/1024))
 " 2>/dev/null)
   [[ "$gb" =~ ^[0-9]+$ ]] && [ "$gb" -gt 0 ] && echo "$gb" || echo ""
 }
-
-# Fetch live sizes from Ollama registry
-MSIZES=()
-for i in 0 1 2 3; do
-  sz=$(get_model_size_gb "${MODELS[$i]}")
-  [ -z "$sz" ] && stop "Could not fetch model info from Ollama registry. Check internet and try again."
-  MSIZES+=("$sz")
-done
 
 # ─────────────────────────────────────────────
 clear
@@ -206,6 +199,14 @@ curl -s --max-time 8 https://ollama.com >/dev/null 2>&1 || \
   stop "No internet connection. Connect to WiFi and run again."
 _ok "Internet connected"
 
+# Fetch live model sizes from Ollama registry now that internet is confirmed
+MSIZES=()
+for i in 0 1 2 3; do
+  sz=$(get_model_size_gb "${MODELS[$i]}")
+  [ -z "$sz" ] && stop "Could not fetch model info from Ollama registry. Check internet and try again."
+  MSIZES+=("$sz")
+done
+
 # ─────────────────────────────────────────────
 # STEP 3 — RAM + STORAGE + MODEL
 # ─────────────────────────────────────────────
@@ -255,14 +256,14 @@ fi
 MODEL="${MODELS[$MODEL_IDX]}"
 MODEL_DISPLAY="${MNAMES[$MODEL_IDX]}"
 case $MODEL_IDX in
-  0) TIER="AI Max";   SPEED="15-30 tok/s" ;;
-  1) TIER="AI Pro";   SPEED="20-40 tok/s" ;;
-  2) TIER="AI Ready"; SPEED="30-80 tok/s" ;;
-  3) TIER="AI Entry"; SPEED="10-25 tok/s" ;;
+  0) TIER="AI Max"   ;;
+  1) TIER="AI Pro"   ;;
+  2) TIER="AI Ready" ;;
+  3) TIER="AI Entry" ;;
 esac
 
 [[ "$AUDIENCE" == "developer" ]] && \
-  _ok "Model: $MODEL_DISPLAY | Tier: $TIER | ~$SPEED" || \
+  _ok "Model: $MODEL_DISPLAY | Tier: $TIER" || \
   _ok "Found the right AI for your Mac"
 
 # ─────────────────────────────────────────────
@@ -687,10 +688,10 @@ h1{font-size:clamp(28px,5vw,44px);font-weight:900;line-height:1.15;margin-bottom
 <div class="card">
 <div class="card-icon io">✨</div>
 <div>
-<div class="card-eyebrow">System-wide AI (Mac)</div>
-<div class="card-title">${AI_NAME} in every app on your Mac</div>
-<div class="card-desc">Highlight any text anywhere — in an email, Word doc, Notes, anywhere — press a keyboard shortcut, and ${AI_NAME} responds right there without you leaving the app.</div>
-<div class="card-how"><strong>How to get it:</strong> Visit <a href="https://thuki.app" style="color:#3730a3"><strong>thuki.app</strong></a> (free). Highlight text anywhere → press your shortcut → ${AI_NAME} appears.</div>
+<div class="card-eyebrow">System-wide AI (Apple Silicon)</div>
+<div class="card-title">${AI_NAME} floating above every app</div>
+<div class="card-desc">Double-tap the Control key from any app — email, Notes, browser, anywhere — and a floating AI overlay appears instantly. Highlight text first and it pre-fills as context. No window switching.</div>
+<div class="card-how"><strong>How to get it:</strong> Visit <a href="https://thuki.app" style="color:#3730a3"><strong>thuki.app</strong></a> (free, open source, Apple Silicon M1+ only). Double-tap Control → ${AI_NAME} appears over any app.</div>
 </div>
 </div>
 
@@ -712,14 +713,14 @@ h1{font-size:clamp(28px,5vw,44px);font-weight:900;line-height:1.15;margin-bottom
 <div><h3>Which AI is best for what?</h3><p>All free. Download any inside LM Studio → Discover.</p></div>
 </div>
 <div class="models-grid">
-<div class="model-card"><div class="model-name">Llama 3.1 8B</div><div class="model-use">Best all-rounder. Chat, writing, questions.</div><span class="model-ram">8GB RAM</span></div>
-<div class="model-card"><div class="model-name">Phi-4 Mini</div><div class="model-use">Fast, light. Great for older Macs.</div><span class="model-ram">6GB RAM</span></div>
-<div class="model-card"><div class="model-name">Qwen3 32B</div><div class="model-use">Best quality. Reasoning, long answers.</div><span class="model-ram">32GB RAM</span></div>
-<div class="model-card"><div class="model-name">DeepSeek R1</div><div class="model-use">Logic, math, step-by-step thinking.</div><span class="model-ram">12GB RAM</span></div>
-<div class="model-card"><div class="model-name">Gemma 4</div><div class="model-use">Can see and describe images.</div><span class="model-ram">8GB RAM</span></div>
-<div class="model-card"><div class="model-name">Qwen3-Coder</div><div class="model-use">Writing and fixing code.</div><span class="model-ram">16GB RAM</span></div>
+<div class="model-card"><div class="model-name">llama3.1:8b</div><div class="model-use">Best all-rounder. Chat, writing, questions.</div><span class="model-ram">5GB disk</span></div>
+<div class="model-card"><div class="model-name">phi4-mini</div><div class="model-use">Fast and light. Great for older Macs.</div><span class="model-ram">2GB disk</span></div>
+<div class="model-card"><div class="model-name">qwen3:32b</div><div class="model-use">Best quality. Reasoning, long answers.</div><span class="model-ram">19GB disk</span></div>
+<div class="model-card"><div class="model-name">deepseek-r1:7b</div><div class="model-use">Logic, math, step-by-step thinking.</div><span class="model-ram">5GB disk</span></div>
+<div class="model-card"><div class="model-name">gemma4:12b</div><div class="model-use">Vision — can see and describe images.</div><span class="model-ram">7GB disk</span></div>
+<div class="model-card"><div class="model-name">qwen2.5-coder:7b</div><div class="model-use">Writing and fixing code.</div><span class="model-ram">5GB disk</span></div>
 </div>
-<div class="models-how">To switch: open <strong>LM Studio</strong> → <strong>Discover</strong> → search a model name → <strong>Download</strong> → select it in the chat window.</div>
+<div class="models-how">Disk space required shown. To switch: open <strong>LM Studio</strong> → <strong>Discover</strong> → search a model name → <strong>Download</strong> → select it in the chat window.</div>
 </div>
 
 <div class="tips">
@@ -776,7 +777,6 @@ REPORT="$HOME/Desktop/${AI_NAME}_Setup_$(date '+%Y%m%d').txt"
   echo "RAM:     ${RAM_GB}GB | macOS: $MACOS_VER"
   echo "AI Name: $AI_NAME"
   echo "Model:   $MODEL_DISPLAY ($TIER)"
-  echo "Speed:   ~$SPEED"
   echo "GPU:     $GPU_STATUS"
   echo ""
   echo "Installed:"
@@ -843,7 +843,7 @@ else
   _gap
   echo -e "  Device:   $DEVICE_NAME | macOS $MACOS_VER"
   echo -e "  RAM:      ${RAM_GB}GB | GPU: $GPU_STATUS"
-  echo -e "  Model:    $MODEL_DISPLAY ($TIER) | ~$SPEED"
+  echo -e "  Model:    $MODEL_DISPLAY ($TIER)"
   _gap
   echo -e "  Ollama:      $([ "$OLLAMA_OK" = true ] && echo "${G}✅${N}" || echo "${R}❌${N}")"
   echo -e "  LM Studio:   $([ "$LMS_OK" = true ] && echo "${G}✅${N}" || echo "${Y}⚠${N}")"
