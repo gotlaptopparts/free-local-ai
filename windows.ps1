@@ -119,16 +119,7 @@ function Get-ModelSizeGb {
             Measure-Object -Property size -Sum).Sum
   return [math]::Ceiling($bytes / 1GB)
 }
-
-# Fetch live sizes from Ollama registry
-$MSizes = @()
-for ($i = 0; $i -lt $Models.Count; $i++) {
-  try {
-    $MSizes += Get-ModelSizeGb -ModelTag $Models[$i]
-  } catch {
-    Stop-Script "Could not fetch model info from Ollama registry. Check internet and try again."
-  }
-}
+# MSizes populated after internet check (Step 3)
 
 # ─────────────────────────────────────────────
 Clear-Host
@@ -258,6 +249,16 @@ try {
   Stop-Script "No internet connection. Connect to WiFi and run again."
 }
 
+# Fetch live model sizes from Ollama registry now that internet is confirmed
+$MSizes = @()
+for ($i = 0; $i -lt $Models.Count; $i++) {
+  try {
+    $MSizes += Get-ModelSizeGb -ModelTag $Models[$i]
+  } catch {
+    Stop-Script "Could not fetch model info from Ollama registry. Check internet and try again."
+  }
+}
+
 # ─────────────────────────────────────────────
 # STEP 4 -- RAM + STORAGE + MODEL
 # ─────────────────────────────────────────────
@@ -301,13 +302,13 @@ if ($FREE_DISK -lt $Needed) {
 
 $Model = $Models[$ModelIdx]; $ModelDisplay = $MNames[$ModelIdx]
 switch ($ModelIdx) {
-  0 { $Tier = "AI Max";   $Speed = "15-30 tok/s" }
-  1 { $Tier = "AI Pro";   $Speed = "20-40 tok/s" }
-  2 { $Tier = "AI Ready"; $Speed = "20-50 tok/s" }
-  3 { $Tier = "AI Entry"; $Speed = "10-25 tok/s" }
+  0 { $Tier = "AI Max"   }
+  1 { $Tier = "AI Pro"   }
+  2 { $Tier = "AI Ready" }
+  3 { $Tier = "AI Entry" }
 }
 
-if ($Audience -eq "developer") { _ok "Model: $ModelDisplay | Tier: $Tier | ~$Speed" }
+if ($Audience -eq "developer") { _ok "Model: $ModelDisplay | Tier: $Tier" }
 else { _ok "Found the right AI for your laptop" }
 
 # ─────────────────────────────────────────────
@@ -443,12 +444,19 @@ if ($Audience -eq "developer") {
   _ok "LM Studio preset written: $AIName"
 }
 
-# Refresh PATH + find Ollama
+# Refresh PATH + find Ollama across known install locations
 $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH","Machine") + ";" +
             [System.Environment]::GetEnvironmentVariable("PATH","User")
 $OllamaExe = (Get-Command ollama -ErrorAction SilentlyContinue)?.Source
-if (-not $OllamaExe) { $OllamaExe = "$env:LOCALAPPDATA\Programs\Ollama\ollama.exe" }
-if (-not (Test-Path $OllamaExe)) {
+if (-not $OllamaExe) {
+  $OllamaCandidates = @(
+    "$env:LOCALAPPDATA\Programs\Ollama\ollama.exe",
+    "$env:LOCALAPPDATA\Ollama\ollama.exe",
+    "$env:PROGRAMFILES\Ollama\ollama.exe"
+  )
+  foreach ($c in $OllamaCandidates) { if (Test-Path $c) { $OllamaExe = $c; break } }
+}
+if (-not $OllamaExe -or -not (Test-Path $OllamaExe)) {
   Stop-Script "Please close this window, open a new PowerShell, and run the script again."
 }
 
@@ -569,8 +577,20 @@ Celebrate "$AIName downloaded and working"
 
 # ── Desktop shortcut named after AI ──
 $DesktopPath = [System.Environment]::GetFolderPath("Desktop")
-$LMPath = "$env:LOCALAPPDATA\Programs\LM Studio\LM Studio.exe"
-if (Test-Path $LMPath) {
+# Detect LM Studio install path dynamically across known locations
+$LMPath = $null
+$LMCandidates = @(
+  "$env:LOCALAPPDATA\Programs\LM Studio\LM Studio.exe",
+  "$env:LOCALAPPDATA\LM Studio\LM Studio.exe",
+  "$env:PROGRAMFILES\LM Studio\LM Studio.exe",
+  "$env:PROGRAMFILES(X86)\LM Studio\LM Studio.exe"
+)
+foreach ($c in $LMCandidates) { if (Test-Path $c) { $LMPath = $c; break } }
+if (-not $LMPath) {
+  $found = Get-Command "LM Studio" -ErrorAction SilentlyContinue
+  if ($found) { $LMPath = $found.Source }
+}
+if ($LMPath) {
   $WS = New-Object -ComObject WScript.Shell
   $SC = $WS.CreateShortcut("$DesktopPath\Start $AIName.lnk")
   $SC.TargetPath = $LMPath; $SC.Save()
@@ -704,12 +724,12 @@ h1{font-size:clamp(28px,5vw,44px);font-weight:900;line-height:1.15;margin-bottom
 <div style="font-size:20px;font-weight:800;color:#111827;margin-bottom:4px">Which AI is best for what?</div>
 <div style="font-size:14px;color:#6b7280;font-weight:600">All free. Download any inside LM Studio - Discover.</div>
 <div class="models-grid">
-<div class="model-card"><div class="model-name">Llama 3.1 8B</div><div class="model-use">Best all-rounder. Chat, writing, questions.</div><span class="model-ram">8GB RAM</span></div>
-<div class="model-card"><div class="model-name">Phi-4 Mini</div><div class="model-use">Fast, light. Great for older laptops.</div><span class="model-ram">6GB RAM</span></div>
-<div class="model-card"><div class="model-name">Qwen3 32B</div><div class="model-use">Best quality. Reasoning, long answers.</div><span class="model-ram">32GB RAM</span></div>
-<div class="model-card"><div class="model-name">DeepSeek R1</div><div class="model-use">Logic, math, step-by-step thinking.</div><span class="model-ram">12GB RAM</span></div>
-<div class="model-card"><div class="model-name">Gemma 4</div><div class="model-use">Can see and describe images.</div><span class="model-ram">8GB RAM</span></div>
-<div class="model-card"><div class="model-name">Qwen3-Coder</div><div class="model-use">Writing and fixing code.</div><span class="model-ram">16GB RAM</span></div>
+<div class="model-card"><div class="model-name">llama3.1:8b</div><div class="model-use">Best all-rounder. Chat, writing, questions.</div><span class="model-ram">5GB disk</span></div>
+<div class="model-card"><div class="model-name">phi4-mini</div><div class="model-use">Fast and light. Great for older laptops.</div><span class="model-ram">2GB disk</span></div>
+<div class="model-card"><div class="model-name">qwen3:32b</div><div class="model-use">Best quality. Reasoning, long answers.</div><span class="model-ram">19GB disk</span></div>
+<div class="model-card"><div class="model-name">deepseek-r1:7b</div><div class="model-use">Logic, math, step-by-step thinking.</div><span class="model-ram">5GB disk</span></div>
+<div class="model-card"><div class="model-name">gemma4:12b</div><div class="model-use">Vision -- can see and describe images.</div><span class="model-ram">7GB disk</span></div>
+<div class="model-card"><div class="model-name">qwen2.5-coder:7b</div><div class="model-use">Writing and fixing code.</div><span class="model-ram">5GB disk</span></div>
 </div>
 <div class="models-how">To switch: open <strong>LM Studio</strong> -- <strong>Discover</strong> -- search a model -- <strong>Download</strong> -- select it in the chat window.</div>
 </div>
@@ -762,7 +782,7 @@ Device:  $DeviceName
 CPU:     $CPU | RAM: ${RAM_GB}GB
 GPU:     $GPU_Name $(if($VRAM_GB -gt 0){"(${VRAM_GB}GB VRAM)"})
 AI Name: $AIName
-Model:   $ModelDisplay ($Tier) | ~$Speed
+Model:   $ModelDisplay ($Tier)
 GPU:     $GpuStatus
 
 Installed:
@@ -820,7 +840,7 @@ if ($Audience -eq "hobbyist") {
   _gap
   Write-Host "  Device:   $DeviceName"
   Write-Host "  RAM:      ${RAM_GB}GB | GPU: $GPU_Name $(if($VRAM_GB -gt 0){"(${VRAM_GB}GB VRAM)"})"
-  Write-Host "  Model:    $ModelDisplay ($Tier) | ~$Speed"
+  Write-Host "  Model:    $ModelDisplay ($Tier)"
   Write-Host "  GPU:      $GpuStatus" -ForegroundColor Green
   _gap
   Write-Host "  Ollama:      $(if($OllamaOK){'OK'}else{'FAILED'})" -ForegroundColor $(if($OllamaOK){'Green'}else{'Red'})
