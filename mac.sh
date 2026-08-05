@@ -715,8 +715,8 @@ h1{font-size:clamp(28px,5vw,44px);font-weight:900;line-height:1.15;margin-bottom
 <div>
 <div class="card-eyebrow">Browser AI</div>
 <div class="card-title">${AI_NAME} on every webpage you visit</div>
-<div class="card-desc">A browser tab was opened during setup. Click "Add to Chrome" (or Firefox/Edge). Now ${AI_NAME} is in your browser — summarize articles, explain confusing things, translate anything.</div>
-<div class="card-how"><strong>How to use:</strong> Click the AI icon in your browser toolbar. Or highlight any text on any webpage → right-click → "Ask AI".</div>
+<div class="card-desc">A browser tab was opened during setup. Click "Add to Chrome" (or Firefox/Edge) → it auto-connects to ${AI_NAME} immediately. No configuration needed — just install and start chatting.</div>
+<div class="card-how"><strong>How to use:</strong> Click the Page Assist icon in your browser toolbar to open a chat sidebar. Or highlight any text on any webpage → right-click → "Ask AI". ${AI_NAME} reads the page and answers instantly.</div>
 </div>
 </div>
 
