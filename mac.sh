@@ -11,6 +11,25 @@
 
 VERSION="1.0"
 
+# ── Security & Privacy ──
+# This script is fully open source. Read every line before running.
+# github.com/gotlaptopparts/free-local-ai
+#
+# What this script does:
+#   - Installs AI software via Homebrew (verified, signed packages only)
+#   - Downloads AI models from Ollama's official servers
+#   - Creates files on your Desktop
+#
+# What this script NEVER does:
+#   - Does NOT collect your data
+#   - Does NOT connect to GotLaptopParts servers
+#   - Does NOT install tracking or telemetry
+#   - Does NOT require an account or login
+#   - Does NOT send anything anywhere
+#
+# Your AI conversations are private. Everything runs locally.
+# Nothing you discuss with your AI ever leaves your laptop.
+
 # ── Colors ──
 R='\033[0;31m' G='\033[0;32m' Y='\033[1;33m'
 B='\033[0;34m' C='\033[0;36m' W='\033[1m' N='\033[0m'
@@ -588,9 +607,9 @@ h1{font-size:clamp(28px,5vw,44px);font-weight:900;line-height:1.15;margin-bottom
 <h1>Meet ${AI_NAME}.<br>Your free private AI.</h1>
 <p class="hero-sub">Here's what you now have — and how to use everything.</p>
 <div class="savings-card">
-<div class="savings-label">You're now saving</div>
-<div class="savings-amount" id="counter">\$0</div>
-<div class="savings-period">every month — forever</div>
+<div class="savings-label">Your AI subscriptions</div>
+<div class="savings-amount">\$0</div>
+<div class="savings-period">from now on — forever</div>
 <div class="savings-breakdown">
 <span class="stag">No ChatGPT</span>
 <span class="stag">No Copilot</span>
@@ -712,16 +731,7 @@ ${AI_NAME} runs locally. No subscriptions. No data leaves your Mac.
 </div>
 
 <script>
-const target=82,duration=2200,el=document.getElementById('counter');
-let start=null;
-function easeOut(t){return 1-Math.pow(1-t,3)}
-function animate(ts){
-  if(!start)start=ts;
-  const p=Math.min((ts-start)/duration,1);
-  el.textContent='\$'+Math.round(easeOut(p)*target);
-  p<1?requestAnimationFrame(animate):el.textContent='\$82';
-}
-setTimeout(()=>requestAnimationFrame(animate),600);
+// No animation needed — $0 is the honest number
 </script>
 </body>
 </html>
@@ -781,7 +791,7 @@ if [[ "$AUDIENCE" == "hobbyist" ]]; then
   echo "  ╚══════════════════════════════════════════╝"
   echo -e "${N}"
   _gap
-  echo -e "  ${W}You're saving \$82/month in AI subscriptions. Forever.${N}"
+  echo -e "  ${W}Whatever you paid for AI subscriptions — that's now \$0.${N}"
   _gap
   echo -e "  🖥  Double-click ${W}\"Start ${AI_NAME}\"${N} on your Desktop to chat"
   echo -e "  🌐  Check the browser tab → click ${W}'Add to Chrome'${N} for browser AI"
