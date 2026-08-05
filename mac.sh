@@ -1,0 +1,833 @@
+#!/bin/bash
+# ============================================================
+# Free Local AI Setup — Mac Edition v1.0
+# github.com/gotlaptopparts/free-local-ai
+# gotlaptopparts.com/ai-setup
+# ============================================================
+# Run: curl -s https://gotlaptopparts.com/ai-setup/mac.sh | bash
+# ============================================================
+# MIT License — open source, auditable, no telemetry
+# ============================================================
+
+VERSION="1.0"
+
+# ── Colors ──
+R='\033[0;31m' G='\033[0;32m' Y='\033[1;33m'
+B='\033[0;34m' C='\033[0;36m' W='\033[1m' N='\033[0m'
+
+# ── Helpers ──
+_ok()   { echo -e "  ${G}✅ $1${N}"; }
+_warn() { echo -e "  ${Y}⚠  $1${N}"; }
+_err()  { echo -e "  ${R}❌ $1${N}"; }
+_info() { echo -e "  ${C}→  $1${N}"; }
+_head() { echo -e "\n${Y}$1${N}"; }
+_gap()  { echo ""; }
+
+# Audience-aware output
+say() {
+  # say "friendly" "technical"
+  [[ "$AUDIENCE" == "developer" ]] && _info "$2" || echo -e "  ${G}$1${N}"
+}
+
+step() {
+  # step N TOTAL "Friendly" "Technical"
+  _gap
+  [[ "$AUDIENCE" == "hobbyist" ]] && \
+    echo -e "  ${W}Step $1 of $2${N}  —  $3" || \
+    echo -e "${Y}[$1/$2] $4${N}"
+}
+
+celebrate() { [[ "$AUDIENCE" == "hobbyist" ]] && echo -e "  ${G}$1${N}"; }
+
+ask() {
+  echo -e "\n  ${W}$1 [Y/N]${N}"
+  read -r -p "  > " _a; [[ "$_a" =~ ^[Yy]$ ]]
+}
+
+stop() {
+  _gap
+  if [[ "$AUDIENCE" == "hobbyist" ]]; then
+    _err "Something went wrong: $1"
+    _gap
+    echo -e "  Don't worry — we can help:"
+    echo -e "  📞 ${C}(775) 203-1085${N}"
+    echo -e "  💻 ${C}gotlaptopparts.com/ai-setup/help${N}"
+  else
+    _err "STOPPED: $1"
+    echo -e "  Support: ${C}gotlaptopparts.com/ai-setup/help${N}"
+    echo -e "  Phone:   ${C}(775) 203-1085${N}"
+  fi
+  _gap; exit 1
+}
+
+run_q() {
+  # Run silently for hobbyist, with output for developer
+  [[ "$AUDIENCE" == "developer" ]] && "$@" || "$@" >/dev/null 2>&1
+}
+
+WARNINGS=(); add_warn() { WARNINGS+=("$1"); }
+
+# ── Model chain ──
+MODELS=("llama3.1:70b"   "qwen3:32b"    "llama3.1:8b"  "phi4-mini")
+MNAMES=("Llama 3.1 70B"  "Qwen3 32B"    "Llama 3.1 8B" "Phi-4 Mini")
+MSIZES=(42                20              9               3)
+
+# ─────────────────────────────────────────────
+clear
+echo -e "${B}"
+echo "╔══════════════════════════════════════════════════╗"
+echo "║   Free Local AI Setup — Mac  |  v${VERSION}              ║"
+echo "║   github.com/gotlaptopparts/free-local-ai        ║"
+echo "╚══════════════════════════════════════════════════╝"
+echo -e "${N}"
+
+# ─────────────────────────────────────────────
+# AUDIENCE SELECTION
+# ─────────────────────────────────────────────
+_gap
+echo -e "  ${W}Who is this for?${N}"
+_gap
+echo -e "  ${C}[1]${N}  Personal use — private AI, no more subscriptions"
+echo -e "  ${C}[2]${N}  Developer    — full coding stack + local AI"
+echo -e "  ${C}[3]${N}  Business     — deploying AI across a team"
+_gap
+read -r -p "  Enter 1, 2, or 3: " _choice
+
+case "$_choice" in
+  1) AUDIENCE="hobbyist"  ;;
+  2) AUDIENCE="developer" ;;
+  3)
+    _gap
+    echo -e "  ${W}Business AI deployment is a different setup.${N}"
+    _gap
+    echo -e "  For teams, compliance requirements, or bulk deployment:"
+    echo -e "  📞 ${C}(775) 203-1085${N}"
+    echo -e "  💻 ${C}gotlaptopparts.com/ai-setup${N}"
+    _gap
+    echo -e "  We'll help set up your entire team — private, secure, zero subscriptions."
+    _gap
+    exit 0
+    ;;
+  *) AUDIENCE="hobbyist"; _warn "Defaulting to personal setup" ;;
+esac
+
+# ── Hobbyist intro ──
+if [[ "$AUDIENCE" == "hobbyist" ]]; then
+  _gap
+  echo -e "  ${W}Let's set up your free private AI assistant.${N}"
+  echo -e "  Takes about 20 minutes. You can walk away — it runs on its own."
+  _gap
+  echo -e "  ${G}You'll get:${N}"
+  echo -e "  ✓ AI chat — private, no subscription, works offline"
+  echo -e "  ✓ AI in your browser — on every webpage"
+  echo -e "  ✓ AI that reads your documents"
+  echo -e "  ✓ Nothing leaves your Mac. Ever."
+  _gap
+  read -r -p "  Press Enter to start..."
+fi
+
+# ─────────────────────────────────────────────
+# STEP 1 — HARDWARE
+# ─────────────────────────────────────────────
+step 1 8 "Checking your Mac..." "Hardware detection"
+
+CHIP=$(sysctl -n machdep.cpu.brand_string 2>/dev/null || echo "Unknown")
+RAM_BYTES=$(sysctl -n hw.memsize)
+RAM_GB=$((RAM_BYTES / 1024 / 1024 / 1024))
+DEVICE_NAME=$(scutil --get ComputerName 2>/dev/null || hostname)
+SERIAL=$(system_profiler SPHardwareDataType 2>/dev/null | awk '/Serial Number/ {print $4}')
+MACOS_VER=$(sw_vers -productVersion 2>/dev/null || echo "0")
+MACOS_MAJOR=$(echo "$MACOS_VER" | cut -d. -f1)
+FREE_DISK=$(df -g / | awk 'NR==2 {print $4}')
+IS_AS=false; [[ $(uname -m) == "arm64" ]] && IS_AS=true
+
+[[ "$AUDIENCE" == "developer" ]] && {
+  _info "Device:    $DEVICE_NAME ($SERIAL)"
+  _info "Chip:      $CHIP"
+  _info "RAM:       ${RAM_GB}GB"
+  _info "Free disk: ${FREE_DISK}GB"
+  _info "macOS:     $MACOS_VER"
+  _info "Silicon:   $IS_AS"
+}
+
+[ "$MACOS_MAJOR" -lt 14 ] && add_warn "macOS $MACOS_VER — update to Sonoma for best performance"
+[[ "$IS_AS" == "false" ]] && add_warn "Intel Mac — AI will run slower (~4-6 tok/s). Apple Silicon is much faster."
+
+_ok "Mac checked"
+
+# ─────────────────────────────────────────────
+# STEP 2 — INTERNET
+# ─────────────────────────────────────────────
+step 2 8 "Checking internet..." "Internet check"
+
+curl -s --max-time 8 https://ollama.com >/dev/null 2>&1 || \
+  stop "No internet connection. Connect to WiFi and run again."
+_ok "Internet connected"
+
+# ─────────────────────────────────────────────
+# STEP 3 — RAM + STORAGE + MODEL
+# ─────────────────────────────────────────────
+step 3 8 "Picking the best AI for your Mac..." "Model selection"
+
+# Select model by RAM
+if   [ "$RAM_GB" -ge 48 ]; then MODEL_IDX=0
+elif [ "$RAM_GB" -ge 24 ]; then MODEL_IDX=1
+elif [ "$RAM_GB" -ge 12 ]; then MODEL_IDX=2
+else                             MODEL_IDX=3
+fi
+
+# RAM too low
+if [ "$RAM_GB" -lt 6 ]; then
+  if ask "Only ${RAM_GB}GB RAM detected. Install smallest AI model anyway?"; then
+    MODEL_IDX=3; add_warn "Low RAM (${RAM_GB}GB) — Phi-4 Mini installed"
+  else
+    stop "Not enough RAM. Minimum 6GB required."
+  fi
+fi
+
+# Storage check + auto-clean + downgrade
+MODEL_SIZE=${MSIZES[$MODEL_IDX]}
+NEEDED=$((MODEL_SIZE + 5))
+
+if [ "$FREE_DISK" -lt "$NEEDED" ]; then
+  say "Your Mac is a bit full. Cleaning up some space..." \
+      "Low storage — cleaning temp files"
+  rm -rf ~/Library/Caches/Homebrew/downloads 2>/dev/null || true
+  rm -rf ~/.Trash/* 2>/dev/null || true
+  FREE_DISK=$(df -g / | awk 'NR==2 {print $4}')
+
+  if [ "$FREE_DISK" -lt "$NEEDED" ]; then
+    DOWNGRADED=false
+    for TRY in 1 2 3; do
+      NEXT=$((MODEL_IDX + TRY)); [ $NEXT -gt 3 ] && break
+      if [ "$FREE_DISK" -ge $((${MSIZES[$NEXT]} + 5)) ]; then
+        add_warn "Installed ${MNAMES[$NEXT]} (smaller model — storage limit)"
+        MODEL_IDX=$NEXT; DOWNGRADED=true; break
+      fi
+    done
+    [ "$DOWNGRADED" = false ] && \
+      stop "Not enough storage. Free up at least 8GB and try again."
+  fi
+fi
+
+MODEL="${MODELS[$MODEL_IDX]}"
+MODEL_DISPLAY="${MNAMES[$MODEL_IDX]}"
+case $MODEL_IDX in
+  0) TIER="AI Max";   SPEED="15-30 tok/s" ;;
+  1) TIER="AI Pro";   SPEED="20-40 tok/s" ;;
+  2) TIER="AI Ready"; SPEED="30-80 tok/s" ;;
+  3) TIER="AI Entry"; SPEED="10-25 tok/s" ;;
+esac
+
+[[ "$AUDIENCE" == "developer" ]] && \
+  _ok "Model: $MODEL_DISPLAY | Tier: $TIER | ~$SPEED" || \
+  _ok "Found the right AI for your Mac"
+
+# ─────────────────────────────────────────────
+# STEP 4 — NAME YOUR AI (hobbyist only)
+# ─────────────────────────────────────────────
+AI_NAME="Aria"
+if [[ "$AUDIENCE" == "hobbyist" ]]; then
+  _gap
+  echo -e "  ${W}What would you like to call your AI assistant?${N}"
+  echo -e "  ${C}Examples: Aria, Max, Nova, Sam, Alex, Friday${N}"
+  echo -e "  ${C}(Press Enter to use 'Aria')${N}"
+  _gap
+  read -r -p "  Name: " _name_input
+  if [ -n "$_name_input" ]; then
+    AI_NAME="$_name_input"
+  fi
+  _ok "Your AI assistant will be called: ${W}${AI_NAME}${N}"
+fi
+
+# ─────────────────────────────────────────────
+# STEP 5 — INSTALL TOOLS
+# ─────────────────────────────────────────────
+step 5 8 "Installing AI software..." "Installing tools"
+
+[[ "$AUDIENCE" == "hobbyist" ]] && {
+  echo -e "  ${C}This takes about 10-15 minutes on fast internet. ☕${N}"
+}
+
+# ── Homebrew ──
+if ! command -v brew &>/dev/null; then
+  say "Setting up the package manager..." "Installing Homebrew"
+  BREW_OK=false
+  for attempt in 1 2; do
+    if run_q /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"; then
+      [[ "$IS_AS" == "true" ]] && {
+        echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
+        eval "$(/opt/homebrew/bin/brew shellenv)"
+      }
+      BREW_OK=true; break
+    fi
+    [ $attempt -lt 2 ] && sleep 3
+  done
+  [ "$BREW_OK" = false ] && stop "Setup failed. Check internet and try again."
+fi
+
+# ── Install function ──
+brew_install() {
+  local PKG="$1" NAME="$2" CASK="${3:-false}"
+  local CMD="brew install"; [ "$CASK" = true ] && CMD="brew install --cask"
+  for attempt in 1 2; do
+    run_q $CMD "$PKG" && { [[ "$AUDIENCE" == "developer" ]] && _ok "$NAME installed"; return 0; }
+    [ $attempt -lt 2 ] && sleep 3
+  done
+  return 1
+}
+
+OLLAMA_OK=false; LMS_OK=false; JAN_OK=false; ALLM_OK=false
+VSCODE_OK=false; CONT_OK=false; CLINE_OK=false
+
+# Ollama — required
+if ! command -v ollama &>/dev/null; then
+  brew_install "ollama" "Ollama" && OLLAMA_OK=true || \
+    stop "Could not install AI engine. Check internet and try again."
+else
+  run_q brew upgrade ollama 2>/dev/null || true
+  OLLAMA_OK=true
+  [[ "$AUDIENCE" == "developer" ]] && _ok "Ollama updated"
+fi
+
+# LM Studio
+if ! [ -d "/Applications/LM Studio.app" ]; then
+  brew_install "lm-studio" "LM Studio" "true" && LMS_OK=true || \
+    add_warn "LM Studio not installed — get it at lmstudio.ai"
+else
+  LMS_OK=true; [[ "$AUDIENCE" == "developer" ]] && _ok "LM Studio ready"
+fi
+
+# Jan.ai
+if ! [ -d "/Applications/Jan.app" ]; then
+  brew_install "jan" "Jan.ai" "true" && JAN_OK=true || \
+    add_warn "Jan.ai not installed — get it at jan.ai"
+else
+  JAN_OK=true; [[ "$AUDIENCE" == "developer" ]] && _ok "Jan.ai ready"
+fi
+
+# AnythingLLM
+if ! [ -d "/Applications/AnythingLLM.app" ]; then
+  brew_install "anythingllm" "AnythingLLM" "true" && ALLM_OK=true || {
+    # Direct download fallback
+    ALLM_URL="https://cdn.anythingllm.com/latest/AnythingLLMDesktop-apple.dmg"
+    if run_q curl -L "$ALLM_URL" -o /tmp/AnythingLLM.dmg --max-time 120; then
+      run_q hdiutil attach /tmp/AnythingLLM.dmg
+      run_q cp -R "/Volumes/AnythingLLM/AnythingLLM.app" /Applications/
+      run_q hdiutil detach "/Volumes/AnythingLLM" 2>/dev/null || true
+      rm -f /tmp/AnythingLLM.dmg
+      ALLM_OK=true
+    else
+      add_warn "AnythingLLM not installed — get it at anythingllm.com"
+    fi
+  }
+else
+  ALLM_OK=true; [[ "$AUDIENCE" == "developer" ]] && _ok "AnythingLLM ready"
+fi
+
+# Developer tools
+if [[ "$AUDIENCE" == "developer" ]]; then
+  _gap; _info "Installing developer tools..."
+
+  if ! command -v code &>/dev/null; then
+    brew_install "visual-studio-code" "VS Code" "true" && VSCODE_OK=true || \
+      add_warn "VS Code not installed — get it at code.visualstudio.com"
+  else
+    VSCODE_OK=true; _ok "VS Code ready"
+  fi
+
+  if command -v code &>/dev/null; then
+    run_q code --install-extension Continue.continue && \
+      { CONT_OK=true; _ok "Continue.dev installed"; } || \
+      add_warn "Continue.dev — install from VS Code marketplace"
+    run_q code --install-extension saoudrizwan.claude-dev && \
+      { CLINE_OK=true; _ok "Cline installed"; } || \
+      add_warn "Cline — install from VS Code marketplace"
+
+    mkdir -p "$HOME/.continue"
+    cat > "$HOME/.continue/config.json" << CEOF
+{
+  "models": [{
+    "title": "Local AI ($MODEL_DISPLAY)",
+    "provider": "ollama",
+    "model": "$MODEL",
+    "apiBase": "http://localhost:11434"
+  }],
+  "tabAutocompleteModel": {
+    "provider": "ollama",
+    "model": "$MODEL",
+    "apiBase": "http://localhost:11434"
+  },
+  "embeddings": {
+    "provider": "ollama",
+    "model": "nomic-embed-text",
+    "apiBase": "http://localhost:11434"
+  },
+  "allowAnonymousTelemetry": false
+}
+CEOF
+    _ok "Continue configured → local AI ($MODEL_DISPLAY)"
+  fi
+fi
+
+celebrate "✅ Software installed"
+
+# ─────────────────────────────────────────────
+# STEP 6 — AI NAME → LM STUDIO PRESET
+# ─────────────────────────────────────────────
+step 6 8 "Setting up ${AI_NAME}..." "Applying optimizations + AI personality"
+
+# Write LM Studio preset with AI name + personality
+LMS_PRESET_DIR="$HOME/.lmstudio/config-presets"
+mkdir -p "$LMS_PRESET_DIR"
+cat > "$LMS_PRESET_DIR/${AI_NAME}.preset.json" << PEOF
+{
+  "name": "$AI_NAME",
+  "systemPrompt": "Your name is ${AI_NAME}. You are a friendly, private AI assistant running entirely on this laptop. Nothing discussed ever leaves this device — you have no internet connection and send nothing to any server. Be warm, helpful, and concise. When someone asks who you are, tell them your name is ${AI_NAME} and that you run locally and privately.",
+  "temperature": 0.7,
+  "maxTokens": 2048,
+  "topP": 0.9
+}
+PEOF
+
+# Ollama performance optimizations via launchctl
+launchctl setenv OLLAMA_FLASH_ATTENTION "1" 2>/dev/null || true
+launchctl setenv OLLAMA_KEEP_ALIVE "-1" 2>/dev/null || true
+launchctl setenv OLLAMA_NUM_PARALLEL "1" 2>/dev/null || true
+launchctl setenv OLLAMA_MAX_LOADED_MODELS "1" 2>/dev/null || true
+
+# Shell profile
+PROFILE="$HOME/.zshrc"
+if ! grep -q "Free Local AI" "$PROFILE" 2>/dev/null; then
+  cat >> "$PROFILE" << 'PEOF'
+
+# Free Local AI — github.com/gotlaptopparts/free-local-ai
+export OLLAMA_FLASH_ATTENTION=1
+export OLLAMA_KEEP_ALIVE=-1
+export OLLAMA_NUM_PARALLEL=1
+export OLLAMA_MAX_LOADED_MODELS=1
+PEOF
+fi
+
+[[ "$AUDIENCE" == "developer" ]] && {
+  _ok "Performance optimizations applied"
+  _ok "LM Studio preset written: $AI_NAME"
+}
+
+# ── Start Ollama ──
+pkill ollama 2>/dev/null || true; sleep 2
+ollama serve > /tmp/ollama_setup.log 2>&1 &
+
+SERVER_OK=false
+for attempt in 1 2 3; do
+  sleep 4
+  curl -s --max-time 3 http://localhost:11434 >/dev/null 2>&1 && { SERVER_OK=true; break; }
+  if [ $attempt -eq 3 ] && lsof -i :11434 >/dev/null 2>&1; then
+    lsof -ti :11434 | xargs kill -9 2>/dev/null || true
+    sleep 2; ollama serve > /tmp/ollama_setup.log 2>&1 & sleep 5
+    curl -s --max-time 3 http://localhost:11434 >/dev/null 2>&1 && SERVER_OK=true
+  fi
+done
+
+[ "$SERVER_OK" = false ] && stop "AI engine failed to start. Restart your Mac and try again."
+[[ "$AUDIENCE" == "developer" ]] && _ok "Ollama server running"
+celebrate "✅ ${AI_NAME} is warming up..."
+
+# ─────────────────────────────────────────────
+# STEP 7 — DOWNLOAD MODEL
+# ─────────────────────────────────────────────
+step 7 8 "Downloading ${AI_NAME}'s brain..." "Model download"
+
+[[ "$AUDIENCE" == "hobbyist" ]] && {
+  echo -e "  ${C}This is the big download — a few minutes on fast internet. ☕${N}"
+}
+
+PULL_OK=false; CURRENT_IDX=$MODEL_IDX
+
+while [ "$CURRENT_IDX" -le 3 ]; do
+  CURRENT_MODEL="${MODELS[$CURRENT_IDX]}"
+  CURRENT_NAME="${MNAMES[$CURRENT_IDX]}"
+  [[ "$AUDIENCE" == "developer" ]] && _info "Downloading $CURRENT_NAME..."
+
+  for attempt in 1 2 3; do
+    if ollama pull "$CURRENT_MODEL"; then
+      PULL_OK=true; MODEL="$CURRENT_MODEL"; MODEL_DISPLAY="$CURRENT_NAME"
+      [ "$CURRENT_IDX" -gt "$MODEL_IDX" ] && \
+        add_warn "Installed $CURRENT_NAME (smaller model after download issue)"
+      break 2
+    fi
+    [ $attempt -lt 3 ] && sleep 5
+  done
+
+  NEXT=$((CURRENT_IDX + 1))
+  [ $NEXT -le 3 ] && {
+    add_warn "Trying smaller model after download issue"
+    CURRENT_IDX=$NEXT
+  } || stop "Download failed. Check internet and try again.\ngotlaptopparts.com/ai-setup/help"
+done
+
+[ "$PULL_OK" = false ] && stop "Download failed. Check internet connection."
+
+# Developer: embedding model
+[[ "$AUDIENCE" == "developer" ]] && {
+  _info "Downloading embedding model..."
+  run_q ollama pull nomic-embed-text && _ok "Embedding model ready" || \
+    add_warn "nomic-embed-text not downloaded"
+}
+
+# ─────────────────────────────────────────────
+# STEP 8 — VERIFY + FINISH
+# ─────────────────────────────────────────────
+step 8 8 "Testing ${AI_NAME}..." "Verification"
+
+AI_RESPONSE=""
+for attempt in 1 2; do
+  AI_RESPONSE=$(timeout 60 ollama run "$MODEL" \
+    "Your name is ${AI_NAME}. Introduce yourself in one sentence." \
+    2>/dev/null || echo "")
+  [ -n "$AI_RESPONSE" ] && break
+  [ $attempt -eq 1 ] && sleep 5
+done
+
+[ -z "$AI_RESPONSE" ] && add_warn "${AI_NAME} installed but test response failed — try opening LM Studio"
+
+# GPU check
+sleep 2
+PS_OUT=$(ollama ps 2>/dev/null || echo "")
+GPU_STATUS="Unknown"
+echo "$PS_OUT" | grep -q "100% GPU\|Metal" && GPU_STATUS="✅ GPU (Metal)" || {
+  [[ "$IS_AS" == "true" ]] && {
+    GPU_STATUS="⚠ GPU unconfirmed"
+    add_warn "Metal GPU not confirmed — restart Mac if ${AI_NAME} feels slow"
+  } || GPU_STATUS="CPU Mode (Intel Mac)"
+}
+
+[[ "$AUDIENCE" == "developer" ]] && _ok "GPU: $GPU_STATUS"
+
+# Desktop shortcut named after AI
+SHORTCUT="$HOME/Desktop/Start ${AI_NAME}.command"
+cat > "$SHORTCUT" << SEOF
+#!/bin/bash
+open -a "LM Studio"
+SEOF
+chmod +x "$SHORTCUT"
+
+# Open browser extension
+open "https://chromewebstore.google.com/detail/page-assist-a-web-ui-for/jfgfiigpkhlkbnfnbobbkinehhfdhndo" 2>/dev/null || true
+
+# ── Generate welcome guide with AI name ──
+DATE=$(date '+%Y-%m-%d')
+WELCOME="$HOME/Desktop/Welcome to ${AI_NAME}.html"
+
+cat > "$WELCOME" << WEOF
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Welcome to ${AI_NAME} — Your Free Private AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;background:#fafaf8;color:#1f2937;line-height:1.6}
+.hero{background:linear-gradient(135deg,#3730a3,#4f46e5,#6366f1);color:white;padding:56px 24px 64px;text-align:center;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 30% 50%,rgba(255,255,255,.08),transparent 60%)}
+.hero-inner{position:relative;max-width:680px;margin:0 auto}
+.hero-tag{display:inline-block;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);color:rgba(255,255,255,.9);padding:5px 16px;border-radius:20px;font-size:13px;font-weight:700;letter-spacing:.5px;margin-bottom:24px}
+h1{font-size:clamp(28px,5vw,44px);font-weight:900;line-height:1.15;margin-bottom:16px}
+.hero-sub{font-size:18px;opacity:.85;margin-bottom:40px;font-weight:600}
+.savings-card{background:white;border-radius:20px;padding:28px 32px;max-width:480px;margin:0 auto;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.savings-label{font-size:13px;font-weight:700;color:#6b7280;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px}
+.savings-amount{font-size:56px;font-weight:900;color:#16a34a;line-height:1;margin-bottom:6px}
+.savings-period{font-size:15px;color:#6b7280;font-weight:600;margin-bottom:16px}
+.savings-breakdown{display:flex;gap:8px;flex-wrap:wrap}
+.stag{background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d;padding:3px 10px;border-radius:6px;font-size:12px;font-weight:700}
+.main{max-width:760px;margin:0 auto;padding:48px 24px 80px}
+.section-intro{text-align:center;margin-bottom:40px}
+.section-intro h2{font-size:26px;font-weight:900;color:#111827;margin-bottom:8px}
+.section-intro p{font-size:16px;color:#6b7280;font-weight:600}
+.cards{display:flex;flex-direction:column;gap:20px}
+.card{background:white;border-radius:16px;padding:28px;border:2px solid #f3f4f6;display:grid;grid-template-columns:64px 1fr;gap:20px;align-items:start;transition:border-color .2s,box-shadow .2s}
+.card:hover{border-color:#c7d2fe;box-shadow:0 4px 20px rgba(99,102,241,.1)}
+.card-icon{width:64px;height:64px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:30px;flex-shrink:0}
+.ib{background:#eff6ff}.ig{background:#f0fdf4}.ip{background:#faf5ff}.io{background:#fff7ed}.ipk{background:#fdf2f8}
+.card-eyebrow{font-size:11px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:#9ca3af;margin-bottom:4px}
+.card-title{font-size:20px;font-weight:800;color:#111827;margin-bottom:8px}
+.card-desc{font-size:15px;color:#4b5563;line-height:1.65;margin-bottom:14px;font-weight:600}
+.card-how{background:#f9fafb;border-radius:10px;padding:12px 14px;font-size:14px;color:#374151;font-weight:600;border-left:3px solid #6366f1}
+.card-how strong{color:#3730a3}
+.models-section{margin-top:48px;background:white;border-radius:16px;padding:28px;border:2px solid #f3f4f6}
+.models-header{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.models-header h3{font-size:20px;font-weight:800;color:#111827}
+.models-header p{font-size:14px;color:#6b7280;font-weight:600}
+.models-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.model-card{background:#f9fafb;border-radius:10px;padding:14px;border:1px solid #e5e7eb}
+.model-name{font-size:14px;font-weight:800;color:#111827;margin-bottom:2px}
+.model-use{font-size:12px;color:#6b7280;font-weight:600;margin-bottom:8px}
+.model-ram{display:inline-block;background:#eff6ff;color:#3730a3;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700}
+.models-how{margin-top:16px;background:#faf5ff;border-radius:10px;padding:12px 14px;font-size:14px;color:#374151;font-weight:600;border-left:3px solid #9333ea}
+.tips{margin-top:32px;background:#f0fdf4;border-radius:16px;padding:24px 28px;border:2px solid #bbf7d0}
+.tips h3{font-size:17px;font-weight:800;color:#14532d;margin-bottom:14px}
+.tip{display:flex;gap:10px;font-size:14px;color:#166534;font-weight:600;align-items:flex-start;margin-bottom:10px}
+.tip-dot{width:20px;height:20px;background:#16a34a;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;color:white;font-size:11px;font-weight:800}
+.help{margin-top:32px;text-align:center;padding:32px 24px;background:white;border-radius:16px;border:2px solid #f3f4f6}
+.help h3{font-size:20px;font-weight:800;margin-bottom:8px}
+.help p{font-size:15px;color:#6b7280;font-weight:600;margin-bottom:20px}
+.help-links{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:10px;font-size:14px;font-weight:700;text-decoration:none;font-family:'Nunito',sans-serif}
+.bi{background:#4f46e5;color:white}.bg{background:#16a34a;color:white}.bgr{background:#f3f4f6;color:#374151}
+.footer{text-align:center;padding:24px;font-size:13px;color:#9ca3af;font-weight:600}
+@media(max-width:600px){.card{grid-template-columns:1fr}.savings-amount{font-size:44px}}
+</style>
+</head>
+<body>
+<div class="hero">
+<div class="hero-inner">
+<div class="hero-tag">✅ ${AI_NAME} is ready</div>
+<h1>Meet ${AI_NAME}.<br>Your free private AI.</h1>
+<p class="hero-sub">Here's what you now have — and how to use everything.</p>
+<div class="savings-card">
+<div class="savings-label">You're now saving</div>
+<div class="savings-amount" id="counter">\$0</div>
+<div class="savings-period">every month — forever</div>
+<div class="savings-breakdown">
+<span class="stag">No ChatGPT</span>
+<span class="stag">No Copilot</span>
+<span class="stag">No Perplexity</span>
+<span class="stag">No Grammarly</span>
+<span class="stag">No cloud</span>
+</div>
+</div>
+</div>
+</div>
+
+<div class="main">
+<div class="section-intro">
+<h2>4 ways to use ${AI_NAME}</h2>
+<p>Everything runs privately on your Mac. Nothing goes anywhere.</p>
+</div>
+
+<div class="cards">
+
+<div class="card">
+<div class="card-icon ib">🖥️</div>
+<div>
+<div class="card-eyebrow">Chat AI</div>
+<div class="card-title">Talk to ${AI_NAME} — like ChatGPT, but free</div>
+<div class="card-desc">Ask anything. Get help writing emails, summarizing things, answering questions, brainstorming, translating. ${AI_NAME} never judges, never tires, and never shares what you type.</div>
+<div class="card-how"><strong>How to open:</strong> Double-click <strong>"Start ${AI_NAME}"</strong> on your Desktop. Type your question. Press Enter.</div>
+</div>
+</div>
+
+<div class="card">
+<div class="card-icon ig">🌐</div>
+<div>
+<div class="card-eyebrow">Browser AI</div>
+<div class="card-title">${AI_NAME} on every webpage you visit</div>
+<div class="card-desc">A browser tab was opened during setup. Click "Add to Chrome" (or Firefox/Edge). Now ${AI_NAME} is in your browser — summarize articles, explain confusing things, translate anything.</div>
+<div class="card-how"><strong>How to use:</strong> Click the AI icon in your browser toolbar. Or highlight any text on any webpage → right-click → "Ask AI".</div>
+</div>
+</div>
+
+<div class="card">
+<div class="card-icon ip">📄</div>
+<div>
+<div class="card-eyebrow">Document AI</div>
+<div class="card-title">Ask ${AI_NAME} about your files</div>
+<div class="card-desc">Drag any PDF, Word doc, or file into AnythingLLM and ask questions about it. "What are the main points?" "What does this mean?" Your files never leave your Mac.</div>
+<div class="card-how"><strong>How to open:</strong> Find <strong>AnythingLLM</strong> in your Applications folder. Drag any file into the chat. Start asking.</div>
+</div>
+</div>
+
+<div class="card">
+<div class="card-icon io">✨</div>
+<div>
+<div class="card-eyebrow">System-wide AI (Mac)</div>
+<div class="card-title">${AI_NAME} in every app on your Mac</div>
+<div class="card-desc">Highlight any text anywhere — in an email, Word doc, Notes, anywhere — press a keyboard shortcut, and ${AI_NAME} responds right there without you leaving the app.</div>
+<div class="card-how"><strong>How to get it:</strong> Visit <a href="https://thuki.app" style="color:#3730a3"><strong>thuki.app</strong></a> (free). Highlight text anywhere → press your shortcut → ${AI_NAME} appears.</div>
+</div>
+</div>
+
+<div class="card">
+<div class="card-icon ipk">🧠</div>
+<div>
+<div class="card-eyebrow">Want a different AI?</div>
+<div class="card-title">Switch AI models anytime</div>
+<div class="card-desc">Your setup installed the best AI for your Mac's memory. But there are 200+ free models — each good at different things. Download any of them with one click.</div>
+<div class="card-how"><strong>How to switch:</strong> Open <strong>LM Studio</strong> → click <strong>Discover</strong> → search any model → click <strong>Download</strong>. No technical knowledge needed.</div>
+</div>
+</div>
+
+</div>
+
+<div class="models-section">
+<div class="models-header">
+<span style="font-size:28px">🧩</span>
+<div><h3>Which AI is best for what?</h3><p>All free. Download any inside LM Studio → Discover.</p></div>
+</div>
+<div class="models-grid">
+<div class="model-card"><div class="model-name">Llama 3.1 8B</div><div class="model-use">Best all-rounder. Chat, writing, questions.</div><span class="model-ram">8GB RAM</span></div>
+<div class="model-card"><div class="model-name">Phi-4 Mini</div><div class="model-use">Fast, light. Great for older Macs.</div><span class="model-ram">6GB RAM</span></div>
+<div class="model-card"><div class="model-name">Qwen3 32B</div><div class="model-use">Best quality. Reasoning, long answers.</div><span class="model-ram">32GB RAM</span></div>
+<div class="model-card"><div class="model-name">DeepSeek R1</div><div class="model-use">Logic, math, step-by-step thinking.</div><span class="model-ram">12GB RAM</span></div>
+<div class="model-card"><div class="model-name">Gemma 4</div><div class="model-use">Can see and describe images.</div><span class="model-ram">8GB RAM</span></div>
+<div class="model-card"><div class="model-name">Qwen3-Coder</div><div class="model-use">Writing and fixing code.</div><span class="model-ram">16GB RAM</span></div>
+</div>
+<div class="models-how">To switch: open <strong>LM Studio</strong> → <strong>Discover</strong> → search a model name → <strong>Download</strong> → select it in the chat window.</div>
+</div>
+
+<div class="tips">
+<h3>Good to know</h3>
+<div class="tip"><div class="tip-dot">✓</div><span>${AI_NAME} works offline — no internet needed. Use on planes, anywhere.</span></div>
+<div class="tip"><div class="tip-dot">✓</div><span>Nothing you type is ever sent to any company. All on your Mac.</span></div>
+<div class="tip"><div class="tip-dot">✓</div><span>${AI_NAME} starts automatically when you turn on your Mac.</span></div>
+<div class="tip"><div class="tip-dot">✓</div><span>If ${AI_NAME} feels slow, close other apps to free up memory.</span></div>
+<div class="tip"><div class="tip-dot">✓</div><span>Jan.ai (also installed) is the most private option — fully offline, no telemetry.</span></div>
+<div class="tip"><div class="tip-dot">✓</div><span>To update ${AI_NAME}'s brain: open Terminal, type <code style="background:#f3f4f6;padding:1px 6px;border-radius:4px">ollama pull ${MODEL}</code>, press Enter.</span></div>
+</div>
+
+<div class="help">
+<h3>Questions? We're here.</h3>
+<p>We built this because everyone deserves free, private AI.<br>If anything isn't working — just reach out.</p>
+<div class="help-links">
+<a href="tel:+17752031085" class="btn bi">📞 (775) 203-1085</a>
+<a href="https://gotlaptopparts.com/ai-setup/help" class="btn bg" target="_blank">💻 Online Help</a>
+<a href="https://gotlaptopparts.com/ai-builds" class="btn bgr" target="_blank">🛒 AI-Ready Laptops</a>
+</div>
+</div>
+
+<div style="text-align:center;margin-top:32px;padding:20px">
+<p style="font-size:15px;color:#6b7280;font-weight:600;margin-bottom:12px">Enjoying ${AI_NAME}? A quick Google review helps others find this free tool.</p>
+<a href="https://g.page/r/ChIJ9yyohBw_mYAR7JGqywVmGRs/review" target="_blank" class="btn bi" style="font-size:15px;padding:12px 24px">⭐ Leave a Google Review</a>
+</div>
+
+</div>
+
+<div class="footer">
+GotLaptopParts.com · Laptop Mate LLC · Reno, NV<br>
+Free &amp; open source · <a href="https://github.com/gotlaptopparts/free-local-ai" style="color:#6366f1">github.com/gotlaptopparts/free-local-ai</a><br>
+${AI_NAME} runs locally. No subscriptions. No data leaves your Mac.
+</div>
+
+<script>
+const target=82,duration=2200,el=document.getElementById('counter');
+let start=null;
+function easeOut(t){return 1-Math.pow(1-t,3)}
+function animate(ts){
+  if(!start)start=ts;
+  const p=Math.min((ts-start)/duration,1);
+  el.textContent='\$'+Math.round(easeOut(p)*target);
+  p<1?requestAnimationFrame(animate):el.textContent='\$82';
+}
+setTimeout(()=>requestAnimationFrame(animate),600);
+</script>
+</body>
+</html>
+WEOF
+
+# Open welcome guide automatically
+open "$WELCOME" 2>/dev/null || true
+
+# Save verification report
+REPORT="$HOME/Desktop/${AI_NAME}_Setup_$(date '+%Y%m%d').txt"
+{
+  echo "Free Local AI Setup — ${AI_NAME}"
+  echo "github.com/gotlaptopparts/free-local-ai"
+  echo "Version: $VERSION | Date: $(date '+%Y-%m-%d %H:%M')"
+  echo "=============================="
+  echo "Device:  $DEVICE_NAME"
+  echo "RAM:     ${RAM_GB}GB | macOS: $MACOS_VER"
+  echo "AI Name: $AI_NAME"
+  echo "Model:   $MODEL_DISPLAY ($TIER)"
+  echo "Speed:   ~$SPEED"
+  echo "GPU:     $GPU_STATUS"
+  echo ""
+  echo "Installed:"
+  printf "  %-15s %s\n" "Ollama:"      "$([ "$OLLAMA_OK" = true ] && echo "✅" || echo "❌")"
+  printf "  %-15s %s\n" "LM Studio:"   "$([ "$LMS_OK" = true ] && echo "✅" || echo "⚠ visit lmstudio.ai")"
+  printf "  %-15s %s\n" "Jan.ai:"      "$([ "$JAN_OK" = true ] && echo "✅" || echo "⚠ visit jan.ai")"
+  printf "  %-15s %s\n" "AnythingLLM:" "$([ "$ALLM_OK" = true ] && echo "✅" || echo "⚠ visit anythingllm.com")"
+  printf "  %-15s %s\n" "Page Assist:" "✅ (browser tab opened)"
+  [ "$AUDIENCE" = "developer" ] && {
+    printf "  %-15s %s\n" "VS Code:"   "$([ "$VSCODE_OK" = true ] && echo "✅" || echo "⚠")"
+    printf "  %-15s %s\n" "Continue:"  "$([ "$CONT_OK" = true ] && echo "✅ configured" || echo "⚠")"
+    printf "  %-15s %s\n" "Cline:"     "$([ "$CLINE_OK" = true ] && echo "✅" || echo "⚠")"
+  }
+  echo ""
+  echo "AI test response:"
+  echo "  \"$AI_RESPONSE\""
+  [ ${#WARNINGS[@]} -gt 0 ] && {
+    echo ""
+    echo "Notes:"
+    for w in "${WARNINGS[@]}"; do echo "  ⚠ $w"; done
+  }
+  echo ""
+  echo "Help: gotlaptopparts.com/ai-setup/help | (775) 203-1085"
+} > "$REPORT"
+
+# ─────────────────────────────────────────────
+# FINAL
+# ─────────────────────────────────────────────
+_gap
+
+if [[ "$AUDIENCE" == "hobbyist" ]]; then
+  echo -e "${G}${W}"
+  echo "  ╔══════════════════════════════════════════╗"
+  echo "  ║                                          ║"
+  echo "  ║   🎉  ${AI_NAME} is ready!                   ║"
+  echo "  ║                                          ║"
+  echo "  ╚══════════════════════════════════════════╝"
+  echo -e "${N}"
+  _gap
+  echo -e "  ${W}You're saving \$82/month in AI subscriptions. Forever.${N}"
+  _gap
+  echo -e "  🖥  Double-click ${W}\"Start ${AI_NAME}\"${N} on your Desktop to chat"
+  echo -e "  🌐  Check the browser tab → click ${W}'Add to Chrome'${N} for browser AI"
+  echo -e "  📄  Open ${W}AnythingLLM${N} → drag in any file to chat with it"
+  echo -e "  📖  Read ${W}\"Welcome to ${AI_NAME}\"${N} on your Desktop — it explains everything"
+  _gap
+  [ ${#WARNINGS[@]} -gt 0 ] && {
+    echo -e "  ${Y}A couple of notes:${N}"
+    for w in "${WARNINGS[@]}"; do echo -e "    ${Y}• $w${N}"; done
+    _gap
+  }
+  echo -e "  ${Y}⭐ Enjoying ${AI_NAME}? A Google review helps others find this:${N}"
+  echo -e "     ${C}g.page/r/ChIJ9yyohBw_mYAR7JGqywVmGRs/review${N}"
+  _gap
+  echo -e "  ${Y}📊 Let us know how it went:${N} ${C}gotlaptopparts.com/ai-setup/feedback${N}"
+  _gap
+  echo -e "  ${C}💻 Want a laptop with ${AI_NAME} pre-installed? gotlaptopparts.com/ai-builds${N}"
+  _gap
+
+else
+  echo -e "${G}${W}╔══════════════════════════════════════════════════╗${N}"
+  echo -e "${G}${W}║              ✅ SETUP COMPLETE                   ║${N}"
+  echo -e "${G}${W}╚══════════════════════════════════════════════════╝${N}"
+  _gap
+  echo -e "  Device:   $DEVICE_NAME | macOS $MACOS_VER"
+  echo -e "  RAM:      ${RAM_GB}GB | GPU: $GPU_STATUS"
+  echo -e "  Model:    $MODEL_DISPLAY ($TIER) | ~$SPEED"
+  _gap
+  echo -e "  Ollama:      $([ "$OLLAMA_OK" = true ] && echo "${G}✅${N}" || echo "${R}❌${N}")"
+  echo -e "  LM Studio:   $([ "$LMS_OK" = true ] && echo "${G}✅${N}" || echo "${Y}⚠${N}")"
+  echo -e "  Jan.ai:      $([ "$JAN_OK" = true ] && echo "${G}✅${N}" || echo "${Y}⚠${N}")"
+  echo -e "  AnythingLLM: $([ "$ALLM_OK" = true ] && echo "${G}✅${N}" || echo "${Y}⚠${N}")"
+  echo -e "  Page Assist: ${G}✅ browser tab opened${N}"
+  [[ "$AUDIENCE" == "developer" ]] && {
+    echo -e "  VS Code:     $([ "$VSCODE_OK" = true ] && echo "${G}✅${N}" || echo "${Y}⚠${N}")"
+    echo -e "  Continue:    $([ "$CONT_OK" = true ] && echo "${G}✅ → local AI${N}" || echo "${Y}⚠${N}")"
+    echo -e "  Cline:       $([ "$CLINE_OK" = true ] && echo "${G}✅${N}" || echo "${Y}⚠${N}")"
+  }
+  _gap
+  [ ${#WARNINGS[@]} -gt 0 ] && {
+    echo -e "  ${Y}Notes:${N}"
+    for w in "${WARNINGS[@]}"; do echo -e "    ${Y}• $w${N}"; done
+    _gap
+  }
+  echo -e "  ${Y}⭐ ${C}g.page/r/ChIJ9yyohBw_mYAR7JGqywVmGRs/review${N}"
+  echo -e "  ${Y}📊 ${C}gotlaptopparts.com/ai-setup/feedback${N}"
+  echo -e "  ${C}💻 gotlaptopparts.com/ai-builds${N}"
+  _gap
+fi
