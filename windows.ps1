@@ -177,13 +177,13 @@ if ($Audience -eq "hobbyist") {
 Step 1 8 "Checking your laptop..." "Hardware detection"
 
 $DeviceName = $env:COMPUTERNAME
-$Serial     = (Get-WmiObject Win32_BIOS -ErrorAction SilentlyContinue).SerialNumber
-$RAM_Bytes  = (Get-WmiObject Win32_ComputerSystem).TotalPhysicalMemory
+$Serial     = (Get-CimInstance Win32_BIOS -ErrorAction SilentlyContinue).SerialNumber
+$RAM_Bytes  = (Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory
 $RAM_GB     = [math]::Round($RAM_Bytes / 1GB)
-$CPU        = (Get-WmiObject Win32_Processor | Select-Object -First 1).Name
+$CPU        = (Get-CimInstance Win32_Processor | Select-Object -First 1).Name
 $DrvC       = Get-PSDrive C
 $FREE_DISK  = [math]::Round($DrvC.Free / 1GB)
-$WinVer     = (Get-WmiObject Win32_OperatingSystem).Caption
+$WinVer     = (Get-CimInstance Win32_OperatingSystem).Caption
 
 # GPU detection
 $GPU_Name = "Unknown"; $VRAM_GB = 0; $HasNvidia = $false
@@ -196,7 +196,7 @@ if (Test-Path $NvSmi) {
   if ($NvName) { $GPU_Name = $NvName.Trim() }
   if ($NvVram) { $VRAM_GB  = [math]::Round([int]($NvVram.Trim()) / 1024) }
 } else {
-  $GPU = Get-WmiObject Win32_VideoController | Where-Object { $_.Name -notlike "*Microsoft*" } | Select-Object -First 1
+  $GPU = Get-CimInstance Win32_VideoController | Where-Object { $_.Name -notlike "*Microsoft*" } | Select-Object -First 1
   if ($GPU) { $GPU_Name = $GPU.Name }
 }
 
@@ -693,7 +693,7 @@ h1{font-size:clamp(28px,5vw,44px);font-weight:900;line-height:1.15;margin-bottom
 <p class="hero-sub">Here's what you now have -- and how to use everything.</p>
 <div class="savings-card">
 <div class="savings-label">Your AI subscriptions</div>
-<div class="savings-amount">$0</div>
+<div class="savings-amount">`$0</div>
 <div class="savings-period">from now on -- forever</div>
 <div class="savings-breakdown">
 <span class="stag">No ChatGPT</span><span class="stag">No Copilot</span><span class="stag">No Perplexity</span><span class="stag">No Grammarly</span><span class="stag">No cloud</span>
@@ -786,7 +786,7 @@ Free &amp; open source - <a href="https://github.com/gotlaptopparts/free-local-a
 $AIName runs locally. No subscriptions. No data leaves your laptop.
 </div>
 <script>
-// No animation needed -- $0 is the honest number
+// No animation needed -- `$0 is the honest number
 </script>
 </body>
 </html>
