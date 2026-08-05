@@ -721,8 +721,8 @@ h1{font-size:clamp(28px,5vw,44px);font-weight:900;line-height:1.15;margin-bottom
 <div>
 <div class="card-eyebrow">Browser AI</div>
 <div class="card-title">$AIName on every webpage you visit</div>
-<div class="card-desc">A browser tab was opened during setup. Click "Add to Chrome". Now $AIName is in your browser -- summarize articles, explain things, translate anything.</div>
-<div class="card-how"><strong>How to use:</strong> Click the AI icon in your browser toolbar. Or highlight any text on any webpage, right-click, and choose "Ask AI".</div>
+<div class="card-desc">A browser tab was opened during setup. Click "Add to Chrome" -- it auto-connects to $AIName immediately. No configuration needed, just install and start chatting.</div>
+<div class="card-how"><strong>How to use:</strong> Click the Page Assist icon in your browser toolbar to open a chat sidebar. Or highlight any text on any webpage, right-click, and choose "Ask AI". $AIName reads the page and answers instantly.</div>
 </div>
 </div>
 <div class="card">
