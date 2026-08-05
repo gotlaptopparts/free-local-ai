@@ -303,6 +303,7 @@ fi
 # ─────────────────────────────────────────────
 AI_NAME="Aria"
 if [[ "$AUDIENCE" == "hobbyist" ]]; then
+  step 4 8 "Let's name your AI assistant..." "AI name"
   _gap
   echo -e "  ${W}What would you like to call your AI assistant?${N}"
   echo -e "  ${C}Examples: Aria, Max, Nova, Sam, Alex, Friday${N}"
@@ -364,6 +365,9 @@ else
   OLLAMA_OK=true
   [[ "$AUDIENCE" == "developer" ]] && _ok "Ollama updated"
 fi
+
+# Register Ollama as a persistent background service (survives restarts)
+run_q brew services start ollama 2>/dev/null || true
 
 # LM Studio
 if ! [ -d "/Applications/LM Studio.app" ]; then
@@ -589,6 +593,11 @@ echo "$PS_OUT" | grep -q "100% GPU\|Metal" && GPU_STATUS="✅ GPU (Metal)" || {
 SHORTCUT="$HOME/Desktop/Start ${AI_NAME}.command"
 cat > "$SHORTCUT" << SEOF
 #!/bin/bash
+# Start Ollama if not already running
+if ! curl -s --max-time 2 http://localhost:11434 >/dev/null 2>&1; then
+  brew services start ollama 2>/dev/null || ollama serve > /tmp/ollama.log 2>&1 &
+  sleep 3
+fi
 open -a "LM Studio"
 SEOF
 chmod +x "$SHORTCUT"
