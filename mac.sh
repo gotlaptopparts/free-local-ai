@@ -458,18 +458,22 @@ PEOF
 
 # Ollama performance optimizations via launchctl
 launchctl setenv OLLAMA_FLASH_ATTENTION "1" 2>/dev/null || true
-launchctl setenv OLLAMA_KEEP_ALIVE "-1" 2>/dev/null || true
+# Hobbyist: unload model after 5 min idle to free RAM. Developer: keep loaded forever.
+[[ "$AUDIENCE" == "developer" ]] && \
+  launchctl setenv OLLAMA_KEEP_ALIVE "-1" 2>/dev/null || \
+  launchctl setenv OLLAMA_KEEP_ALIVE "5m" 2>/dev/null || true
 launchctl setenv OLLAMA_NUM_PARALLEL "1" 2>/dev/null || true
 launchctl setenv OLLAMA_MAX_LOADED_MODELS "1" 2>/dev/null || true
 
-# Shell profile
+# Shell profile — detect zsh vs bash
 PROFILE="$HOME/.zshrc"
+[[ "$SHELL" == */bash ]] && PROFILE="$HOME/.bash_profile"
 if ! grep -q "Free Local AI" "$PROFILE" 2>/dev/null; then
-  cat >> "$PROFILE" << 'PEOF'
+  cat >> "$PROFILE" << PEOF
 
 # Free Local AI — github.com/gotlaptopparts/free-local-ai
 export OLLAMA_FLASH_ATTENTION=1
-export OLLAMA_KEEP_ALIVE=-1
+export OLLAMA_KEEP_ALIVE=$([ "$AUDIENCE" == "developer" ] && echo "-1" || echo "5m")
 export OLLAMA_NUM_PARALLEL=1
 export OLLAMA_MAX_LOADED_MODELS=1
 PEOF
