@@ -89,36 +89,29 @@ WARNINGS=(); add_warn() { WARNINGS+=("$1"); }
 # ── Model chain ──
 MODELS=("llama3.1:70b"   "qwen3:32b"    "llama3.1:8b"  "phi4-mini")
 MNAMES=("Llama 3.1 70B"  "Qwen3 32B"    "Llama 3.1 8B" "Phi-4 Mini")
-# Fallback sizes in GB (used if registry is unreachable)
-MSIZES_FALLBACK=(40       19             5               3)
 
 # Fetch live model size in GB from Ollama registry manifest
-# Returns size rounded up to nearest GB, or fallback if unreachable
 get_model_size_gb() {
-  local model="$1" fallback="$2"
+  local model="$1"
   local name="${model%%:*}" tag="${model##*:}"
-  local bytes
-  bytes=$(curl -sf --max-time 8 \
+  local gb
+  gb=$(curl -sf --max-time 8 \
     "https://registry.ollama.ai/v2/library/${name}/manifests/${tag}" \
     2>/dev/null | python3 -c "
 import json,sys,math
-try:
-  d=json.load(sys.stdin)
-  total=sum(l['size'] for l in d.get('layers',[]) if 'model' in l.get('mediaType',''))
-  print(math.ceil(total/1024/1024/1024))
-except: print('')
+d=json.load(sys.stdin)
+total=sum(l['size'] for l in d.get('layers',[]) if 'model' in l.get('mediaType',''))
+print(math.ceil(total/1024/1024/1024))
 " 2>/dev/null)
-  if [[ "$bytes" =~ ^[0-9]+$ ]] && [ "$bytes" -gt 0 ]; then
-    echo "$bytes"
-  else
-    echo "$fallback"
-  fi
+  [[ "$gb" =~ ^[0-9]+$ ]] && [ "$gb" -gt 0 ] && echo "$gb" || echo ""
 }
 
-# Fetch live sizes (internet confirmed available at this point in the script flow)
+# Fetch live sizes from Ollama registry
 MSIZES=()
 for i in 0 1 2 3; do
-  MSIZES+=("$(get_model_size_gb "${MODELS[$i]}" "${MSIZES_FALLBACK[$i]}")")
+  sz=$(get_model_size_gb "${MODELS[$i]}")
+  [ -z "$sz" ] && stop "Could not fetch model info from Ollama registry. Check internet and try again."
+  MSIZES+=("$sz")
 done
 
 # ─────────────────────────────────────────────
