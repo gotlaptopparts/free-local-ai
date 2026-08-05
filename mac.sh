@@ -187,9 +187,25 @@ MACOS_MAJOR=$(echo "$MACOS_VER" | cut -d. -f1)
 FREE_DISK=$(df -g / | awk 'NR==2 {print $4}')
 IS_AS=false; [[ $(uname -m) == "arm64" ]] && IS_AS=true
 
+# Parse Apple Silicon chip generation and tier for compute-aware optimization
+CHIP_GEN=0   # 1=M1, 2=M2, 3=M3, 4=M4
+CHIP_TIER=0  # 0=Intel/unknown, 1=base, 2=Pro, 3=Max, 4=Ultra
+if [[ "$IS_AS" == "true" ]]; then
+  [[ "$CHIP" =~ "M1" ]] && CHIP_GEN=1
+  [[ "$CHIP" =~ "M2" ]] && CHIP_GEN=2
+  [[ "$CHIP" =~ "M3" ]] && CHIP_GEN=3
+  [[ "$CHIP" =~ "M4" ]] && CHIP_GEN=4
+  CHIP_TIER=1
+  [[ "$CHIP" =~ "Pro" ]]   && CHIP_TIER=2
+  [[ "$CHIP" =~ "Max" ]]   && CHIP_TIER=3
+  [[ "$CHIP" =~ "Ultra" ]] && CHIP_TIER=4
+fi
+# Compute score: gen * tier (M4 Pro=8, M3 Max=12, M1 base=1, Intel=0)
+COMPUTE_SCORE=$(( CHIP_GEN * CHIP_TIER ))
+
 [[ "$AUDIENCE" == "developer" ]] && {
   _info "Device:    $DEVICE_NAME ($SERIAL)"
-  _info "Chip:      $CHIP"
+  _info "Chip:      $CHIP (gen=$CHIP_GEN tier=$CHIP_TIER score=$COMPUTE_SCORE)"
   _info "RAM:       ${RAM_GB}GB"
   _info "Free disk: ${FREE_DISK}GB"
   _info "macOS:     $MACOS_VER"
@@ -197,7 +213,7 @@ IS_AS=false; [[ $(uname -m) == "arm64" ]] && IS_AS=true
 }
 
 [ "$MACOS_MAJOR" -lt 14 ] && add_warn "macOS $MACOS_VER — update to Sonoma for best performance"
-[[ "$IS_AS" == "false" ]] && add_warn "Intel Mac — AI will run slower (~4-6 tok/s). Apple Silicon is much faster."
+[[ "$IS_AS" == "false" ]] && add_warn "Intel Mac — AI will run on CPU only. Apple Silicon is much faster."
 
 _ok "Mac checked"
 
@@ -223,11 +239,27 @@ done
 # ─────────────────────────────────────────────
 step 3 8 "Picking the best AI for your Mac..." "Model selection"
 
-# Select model by RAM
-if   [ "$RAM_GB" -ge 48 ]; then MODEL_IDX=0
-elif [ "$RAM_GB" -ge 24 ]; then MODEL_IDX=1
-elif [ "$RAM_GB" -ge 12 ]; then MODEL_IDX=2
-else                             MODEL_IDX=3
+# Model selection: RAM sets floor, chip compute score allows upgrades
+# Intel: always cap at llama3.1:8b (no GPU acceleration)
+# Apple Silicon: base tier from RAM, upgrade if compute score justifies it
+if [[ "$IS_AS" == "false" ]]; then
+  # Intel Mac — CPU only, cap at 8b regardless of RAM
+  if   [ "$RAM_GB" -ge 16 ]; then MODEL_IDX=2
+  else                             MODEL_IDX=3
+  fi
+else
+  # Apple Silicon — start from RAM, boost if chip is powerful enough
+  if   [ "$RAM_GB" -ge 48 ]; then MODEL_IDX=0
+  elif [ "$RAM_GB" -ge 24 ]; then MODEL_IDX=1
+  elif [ "$RAM_GB" -ge 12 ]; then MODEL_IDX=2
+  else                             MODEL_IDX=3
+  fi
+  # High compute score on lower RAM: M3 Pro+ or M4 Pro+ can run larger quantized models
+  # e.g. M4 Pro (score=8) with 24GB can run qwen3:32b at q4 fine; M1 base (score=1) cannot
+  if [ "$COMPUTE_SCORE" -ge 8 ] && [ "$MODEL_IDX" -ge 2 ]; then
+    MODEL_IDX=$(( MODEL_IDX - 1 ))
+    [[ "$AUDIENCE" == "developer" ]] && _info "Chip boost: upgraded model tier (score=$COMPUTE_SCORE)"
+  fi
 fi
 
 # RAM too low
@@ -471,14 +503,42 @@ cat > "$LMS_PRESET_DIR/${AI_NAME}.preset.json" << PEOF
 }
 PEOF
 
-# Ollama performance optimizations via launchctl
-launchctl setenv OLLAMA_FLASH_ATTENTION "1" 2>/dev/null || true
-# Hobbyist: unload model after 5 min idle to free RAM. Developer: keep loaded forever.
-[[ "$AUDIENCE" == "developer" ]] && \
-  launchctl setenv OLLAMA_KEEP_ALIVE "-1" 2>/dev/null || \
-  launchctl setenv OLLAMA_KEEP_ALIVE "5m" 2>/dev/null || true
-launchctl setenv OLLAMA_NUM_PARALLEL "1" 2>/dev/null || true
-launchctl setenv OLLAMA_MAX_LOADED_MODELS "1" 2>/dev/null || true
+# Chip-specific Ollama performance tuning
+# OLLAMA_FLASH_ATTENTION: always on (saves ~20% VRAM on all chips)
+# OLLAMA_NUM_GPU_LAYERS: controls how much of the model runs on GPU vs CPU
+#   Apple Silicon: all layers on GPU (Metal) — set to 999 to ensure full offload
+#   Intel: CPU only — set to 0
+# OLLAMA_NUM_PARALLEL: how many concurrent requests Ollama handles
+#   Pro/Max/Ultra: can handle 2 (more GPU compute), base: keep at 1
+# OLLAMA_KEEP_ALIVE: how long model stays loaded between chats
+#   Developer: -1 (always loaded), Hobbyist with low RAM: 5m, Hobbyist with plenty: 15m
+
+if [[ "$IS_AS" == "true" ]]; then
+  OL_GPU_LAYERS=999   # Full Metal GPU offload on Apple Silicon
+  OL_KV_CACHE="q8_0"  # 8-bit KV cache — best quality/speed on Apple Silicon
+  # Pro/Max/Ultra can handle 2 parallel requests; base stays at 1
+  OL_NUM_PARALLEL=$([ "$CHIP_TIER" -ge 2 ] && echo "2" || echo "1")
+else
+  OL_GPU_LAYERS=0     # Intel: CPU only
+  OL_KV_CACHE="q8_0"
+  OL_NUM_PARALLEL=1
+fi
+
+# Keep-alive: developer always loaded; hobbyist frees RAM after idle
+if [[ "$AUDIENCE" == "developer" ]]; then
+  OL_KEEP_ALIVE="-1"
+elif [ "$RAM_GB" -ge 24 ]; then
+  OL_KEEP_ALIVE="15m"  # Plenty of RAM — stay loaded longer
+else
+  OL_KEEP_ALIVE="5m"   # Free RAM sooner on lower-memory Macs
+fi
+
+launchctl setenv OLLAMA_FLASH_ATTENTION "1"        2>/dev/null || true
+launchctl setenv OLLAMA_NUM_GPU_LAYERS "$OL_GPU_LAYERS" 2>/dev/null || true
+launchctl setenv OLLAMA_KV_CACHE_TYPE  "$OL_KV_CACHE"  2>/dev/null || true
+launchctl setenv OLLAMA_KEEP_ALIVE     "$OL_KEEP_ALIVE" 2>/dev/null || true
+launchctl setenv OLLAMA_NUM_PARALLEL   "$OL_NUM_PARALLEL" 2>/dev/null || true
+launchctl setenv OLLAMA_MAX_LOADED_MODELS "1"       2>/dev/null || true
 
 # Shell profile — detect zsh vs bash
 PROFILE="$HOME/.zshrc"
@@ -488,8 +548,10 @@ if ! grep -q "Free Local AI" "$PROFILE" 2>/dev/null; then
 
 # Free Local AI — github.com/gotlaptopparts/free-local-ai
 export OLLAMA_FLASH_ATTENTION=1
-export OLLAMA_KEEP_ALIVE=$([ "$AUDIENCE" == "developer" ] && echo "-1" || echo "5m")
-export OLLAMA_NUM_PARALLEL=1
+export OLLAMA_NUM_GPU_LAYERS=$OL_GPU_LAYERS
+export OLLAMA_KV_CACHE_TYPE=$OL_KV_CACHE
+export OLLAMA_KEEP_ALIVE=$OL_KEEP_ALIVE
+export OLLAMA_NUM_PARALLEL=$OL_NUM_PARALLEL
 export OLLAMA_MAX_LOADED_MODELS=1
 PEOF
 fi
