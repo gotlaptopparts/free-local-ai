@@ -4,12 +4,12 @@
 
 **Run on Mac:**
 ```bash
-curl -s https://gotlaptopparts.com/ai-setup/mac.sh | bash
+curl -s https://gotlaptopparts.com/ai-setup/mac.sh -o /tmp/ai-setup-mac.sh && bash /tmp/ai-setup-mac.sh
 ```
 
 **Run on Windows (PowerShell):**
 ```powershell
-irm https://gotlaptopparts.com/ai-setup/windows.ps1 | iex
+irm https://gotlaptopparts.com/ai-setup/windows.ps1 -OutFile "$env:TEMP\ai-setup.ps1"; powershell -ExecutionPolicy Bypass -File "$env:TEMP\ai-setup.ps1"
 ```
 
 → **Full guide + download page:** [gotlaptopparts.com/ai-setup](https://www.gotlaptopparts.com/ai-setup)
@@ -81,7 +81,7 @@ You can switch to any of 200+ models inside LM Studio after setup — no technic
 
 ```bash
 # Open Terminal (Cmd+Space → type Terminal → Enter)
-curl -s https://gotlaptopparts.com/ai-setup/mac.sh | bash
+curl -s https://gotlaptopparts.com/ai-setup/mac.sh -o /tmp/ai-setup-mac.sh && bash /tmp/ai-setup-mac.sh
 ```
 
 The script asks:
@@ -94,7 +94,7 @@ Then walk away. It handles everything.
 
 ```powershell
 # Open PowerShell as Administrator
-irm https://gotlaptopparts.com/ai-setup/windows.ps1 | iex
+irm https://gotlaptopparts.com/ai-setup/windows.ps1 -OutFile "$env:TEMP\ai-setup.ps1"; powershell -ExecutionPolicy Bypass -File "$env:TEMP\ai-setup.ps1"
 ```
 
 Same questions. Same result.
