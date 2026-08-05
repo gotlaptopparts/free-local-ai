@@ -785,10 +785,10 @@ h1{font-size:clamp(28px,5vw,44px);font-weight:900;line-height:1.15;margin-bottom
 <div class="card">
 <div class="card-icon ip">📄</div>
 <div>
-<div class="card-eyebrow">Document AI</div>
-<div class="card-title">Ask ${AI_NAME} about your files</div>
-<div class="card-desc">Drag any PDF, Word doc, or file into AnythingLLM and ask questions about it. "What are the main points?" "What does this mean?" Your files never leave your Mac.</div>
-<div class="card-how"><strong>How to open:</strong> Find <strong>AnythingLLM</strong> in your Applications folder. Drag any file into the chat. Start asking.</div>
+<div class="card-eyebrow">AI Workspace — Projects, Files &amp; MCP</div>
+<div class="card-title">Your private AI workspace</div>
+<div class="card-desc">AnythingLLM is where you do real work with ${AI_NAME}. Create separate projects (like folders) for different topics or clients. Drag in PDFs, Word docs, spreadsheets, or paste URLs — ${AI_NAME} reads them and answers questions. Connect MCP tools to let your AI take actions: search the web, read your calendar, manage files. Everything stays local — no cloud, no subscriptions.</div>
+<div class="card-how"><strong>How to open:</strong> Find <strong>AnythingLLM</strong> in your Applications folder. Create a workspace → drag in your files → start a project. To connect MCP tools: open AnythingLLM → Settings → Agent Configuration → MCP Servers.</div>
 </div>
 </div>
 
@@ -927,7 +927,7 @@ if [[ "$AUDIENCE" == "hobbyist" ]]; then
   _gap
   echo -e "  🖥  Double-click ${W}\"Start ${AI_NAME}\"${N} on your Desktop to chat"
   echo -e "  🌐  Check the browser tab → click ${W}'Add to Chrome'${N} for browser AI"
-  echo -e "  📄  Open ${W}AnythingLLM${N} → drag in any file to chat with it"
+  echo -e "  📁  Open ${W}AnythingLLM${N} → your AI workspace for projects, files, and MCP tools"
   echo -e "  📖  Read ${W}\"Welcome to ${AI_NAME}\"${N} on your Desktop — it explains everything"
   _gap
   [ ${#WARNINGS[@]} -gt 0 ] && {
