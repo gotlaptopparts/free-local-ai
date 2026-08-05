@@ -351,8 +351,10 @@ fi
 # AnythingLLM
 if ! [ -d "/Applications/AnythingLLM.app" ]; then
   brew_install "anythingllm" "AnythingLLM" "true" && ALLM_OK=true || {
-    # Direct download fallback
-    ALLM_URL="https://cdn.anythingllm.com/latest/AnythingLLMDesktop-apple.dmg"
+    # Direct download fallback — Silicon vs Intel
+    [[ "$IS_AS" == "true" ]] && \
+      ALLM_URL="https://cdn.anythingllm.com/latest/AnythingLLMDesktop-Silicon.dmg" || \
+      ALLM_URL="https://cdn.anythingllm.com/latest/AnythingLLMDesktop.dmg"
     if run_q curl -L "$ALLM_URL" -o /tmp/AnythingLLM.dmg --max-time 120; then
       run_q hdiutil attach /tmp/AnythingLLM.dmg
       run_q cp -R "/Volumes/AnythingLLM/AnythingLLM.app" /Applications/
