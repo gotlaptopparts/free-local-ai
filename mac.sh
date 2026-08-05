@@ -70,10 +70,10 @@ stop() {
     _gap
     echo -e "  Don't worry — we can help:"
     echo -e "  📞 ${C}(775) 203-1085${N}"
-    echo -e "  💻 ${C}gotlaptopparts.com/ai-setup/help${N}"
+    echo -e "  💻 ${C}gotlaptopparts.com/ai-setup${N}"
   else
     _err "STOPPED: $1"
-    echo -e "  Support: ${C}gotlaptopparts.com/ai-setup/help${N}"
+    echo -e "  Support: ${C}gotlaptopparts.com/ai-setup${N}"
     echo -e "  Phone:   ${C}(775) 203-1085${N}"
   fi
   _gap; exit 1
@@ -95,15 +95,26 @@ MNAMES=("Llama 3.1 70B"  "Qwen3 32B"    "Llama 3.1 8B" "Phi-4 Mini")
 get_model_size_gb() {
   local model="$1"
   local name="${model%%:*}" tag="${model##*:}"
-  local gb
-  gb=$(curl -sf --max-time 8 \
+  local raw gb
+  raw=$(curl -sf --max-time 8 \
     "https://registry.ollama.ai/v2/library/${name}/manifests/${tag}" \
-    2>/dev/null | python3 -c "
+    2>/dev/null)
+  [ -z "$raw" ] && echo "" && return
+  # Use python3 if available (faster, more accurate), fall back to grep+awk
+  # grep+awk path works on fresh Macs with no Xcode installed
+  if command -v python3 &>/dev/null 2>&1 && python3 -c "import json" &>/dev/null 2>&1; then
+    gb=$(echo "$raw" | python3 -c "
 import json,sys,math
 d=json.load(sys.stdin)
 total=sum(l['size'] for l in d.get('layers',[]) if 'model' in l.get('mediaType',''))
 print(math.ceil(total/1024/1024/1024))
 " 2>/dev/null)
+  else
+    gb=$(echo "$raw" | tr ',' '\n' | \
+      grep -A1 '"mediaType".*model"' | grep '"size"' | \
+      grep -oE '[0-9]+' | \
+      awk '{t+=$1} END{gb=int((t+1073741823)/1073741824); print gb}')
+  fi
   [[ "$gb" =~ ^[0-9]+$ ]] && [ "$gb" -gt 0 ] && echo "$gb" || echo ""
 }
 
@@ -533,7 +544,7 @@ while [ "$CURRENT_IDX" -le 3 ]; do
   [ $NEXT -le 3 ] && {
     add_warn "Trying smaller model after download issue"
     CURRENT_IDX=$NEXT
-  } || stop "Download failed. Check internet and try again.\ngotlaptopparts.com/ai-setup/help"
+  } || stop "Download failed. Check internet and try again.\ngotlaptopparts.com/ai-setup"
 done
 
 [ "$PULL_OK" = false ] && stop "Download failed. Check internet connection."
@@ -763,7 +774,7 @@ h1{font-size:clamp(28px,5vw,44px);font-weight:900;line-height:1.15;margin-bottom
 <p>We built this because everyone deserves free, private AI.<br>If anything isn't working — just reach out.</p>
 <div class="help-links">
 <a href="tel:+17752031085" class="btn bi">📞 (775) 203-1085</a>
-<a href="https://gotlaptopparts.com/ai-setup/help" class="btn bg" target="_blank">💻 Online Help</a>
+<a href="https://gotlaptopparts.com/ai-setup" class="btn bg" target="_blank">💻 Online Help</a>
 <a href="https://gotlaptopparts.com/ai-builds" class="btn bgr" target="_blank">🛒 AI-Ready Laptops</a>
 </div>
 </div>
@@ -824,7 +835,7 @@ REPORT="$HOME/Desktop/${AI_NAME}_Setup_$(date '+%Y%m%d').txt"
     for w in "${WARNINGS[@]}"; do echo "  ⚠ $w"; done
   }
   echo ""
-  echo "Help: gotlaptopparts.com/ai-setup/help | (775) 203-1085"
+  echo "Help: gotlaptopparts.com/ai-setup | (775) 203-1085"
 } > "$REPORT"
 
 # ─────────────────────────────────────────────
@@ -856,7 +867,7 @@ if [[ "$AUDIENCE" == "hobbyist" ]]; then
   echo -e "  ${Y}⭐ Enjoying ${AI_NAME}? A Google review helps others find this:${N}"
   echo -e "     ${C}g.page/r/ChIJ9yyohBw_mYAR7JGqywVmGRs/review${N}"
   _gap
-  echo -e "  ${Y}📊 Let us know how it went:${N} ${C}gotlaptopparts.com/ai-setup/feedback${N}"
+  echo -e "  ${Y}📊 Let us know how it went:${N} ${C}gotlaptopparts.com/ai-setup${N}"
   _gap
   echo -e "  ${C}💻 Want a laptop with ${AI_NAME} pre-installed? gotlaptopparts.com/ai-builds${N}"
   _gap
@@ -887,7 +898,7 @@ else
     _gap
   }
   echo -e "  ${Y}⭐ ${C}g.page/r/ChIJ9yyohBw_mYAR7JGqywVmGRs/review${N}"
-  echo -e "  ${Y}📊 ${C}gotlaptopparts.com/ai-setup/feedback${N}"
+  echo -e "  ${Y}📊 ${C}gotlaptopparts.com/ai-setup${N}"
   echo -e "  ${C}💻 gotlaptopparts.com/ai-builds${N}"
   _gap
 fi
