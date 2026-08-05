@@ -728,10 +728,10 @@ h1{font-size:clamp(28px,5vw,44px);font-weight:900;line-height:1.15;margin-bottom
 <div class="card">
 <div class="card-icon ip">&#x1F4C4;</div>
 <div>
-<div class="card-eyebrow">Document AI</div>
-<div class="card-title">Ask $AIName about your files</div>
-<div class="card-desc">Drag any PDF, Word doc, or file into AnythingLLM and ask questions about it. Your files never leave your laptop.</div>
-<div class="card-how"><strong>How to open:</strong> Find <strong>AnythingLLM</strong> in your Start Menu. Drag any file into the chat. Start asking questions.</div>
+<div class="card-eyebrow">AI Workspace — Projects, Files &amp; MCP</div>
+<div class="card-title">Your private AI workspace</div>
+<div class="card-desc">AnythingLLM is where you do real work with $AIName. Create separate projects for different topics or clients. Drag in PDFs, Word docs, spreadsheets, or paste URLs — $AIName reads them and answers questions. Connect MCP tools to let your AI take actions: search the web, read files, manage tasks. Everything stays local — no cloud, no subscriptions.</div>
+<div class="card-how"><strong>How to open:</strong> Find <strong>AnythingLLM</strong> in your Start Menu. Create a workspace → drag in your files → start a project. To connect MCP tools: open AnythingLLM → Settings → Agent Configuration → MCP Servers.</div>
 </div>
 </div>
 <div class="card">
@@ -842,7 +842,7 @@ if ($Audience -eq "hobbyist") {
   _gap
   Write-Host "  - Double-click 'Start $AIName' on your Desktop to chat" -ForegroundColor Green
   Write-Host "  - Check the browser tab -> click 'Add to Chrome' for browser AI" -ForegroundColor Green
-  Write-Host "  - Open AnythingLLM -> drag in any file to chat with it" -ForegroundColor Green
+  Write-Host "  - Open AnythingLLM -> your AI workspace for projects, files, and MCP tools" -ForegroundColor Green
   Write-Host "  - Read 'Welcome to $AIName' on your Desktop -- it explains everything" -ForegroundColor Green
   _gap
   if ($Warnings.Count -gt 0) {
