@@ -312,6 +312,28 @@ if ($Audience -eq "developer") { _ok "Model: $ModelDisplay | Tier: $Tier" }
 else { _ok "Found the right AI for your laptop" }
 
 # ─────────────────────────────────────────────
+# DOWNLOAD SUMMARY -- show before anything downloads
+# ─────────────────────────────────────────────
+_gap
+Write-Host "  Here's what this script will download:" -ForegroundColor White
+_gap
+Write-Host "  * Ollama         -- AI engine (~200MB)" -ForegroundColor Cyan
+Write-Host "  * LM Studio      -- AI chat app (~300MB)" -ForegroundColor Cyan
+Write-Host "  * Jan.ai         -- offline AI chat (~200MB)" -ForegroundColor Cyan
+Write-Host "  * AnythingLLM    -- chat with your files (~300MB)" -ForegroundColor Cyan
+Write-Host "  * $ModelDisplay  -- AI brain ($($MSizes[$ModelIdx])GB)" -ForegroundColor Cyan
+if ($Audience -eq "developer") {
+  Write-Host "  * VS Code + extensions + embedding model  (~500MB extra)" -ForegroundColor Cyan
+}
+_gap
+$TotalEst = $MSizes[$ModelIdx] + 1
+Write-Host "  Total: ~${TotalEst}GB download. You have ${FREE_DISK}GB free." -ForegroundColor White
+_gap
+if (-not (Ask-User "Ready to start? Your internet connection will be used.")) {
+  Stop-Script "Setup cancelled."
+}
+
+# ─────────────────────────────────────────────
 # NAME YOUR AI (hobbyist only)
 # ─────────────────────────────────────────────
 if ($Audience -eq "hobbyist") {
