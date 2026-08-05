@@ -72,10 +72,10 @@ function Stop-Script {
     _gap
     Write-Host "  Don't worry -- we can help:" -ForegroundColor White
     Write-Host "  (775) 203-1085" -ForegroundColor Cyan
-    Write-Host "  gotlaptopparts.com/ai-setup/help" -ForegroundColor Cyan
+    Write-Host "  gotlaptopparts.com/ai-setup" -ForegroundColor Cyan
   } else {
     _err "STOPPED: $reason"
-    Write-Host "  Support: gotlaptopparts.com/ai-setup/help" -ForegroundColor Cyan
+    Write-Host "  Support: gotlaptopparts.com/ai-setup" -ForegroundColor Cyan
     Write-Host "  Phone:   (775) 203-1085" -ForegroundColor Cyan
   }
   _gap; exit 1
@@ -771,7 +771,7 @@ h1{font-size:clamp(28px,5vw,44px);font-weight:900;line-height:1.15;margin-bottom
 <p>We built this because everyone deserves free, private AI.<br>If anything isn't working -- just reach out.</p>
 <div class="help-links">
 <a href="tel:+17752031085" class="btn bi">(775) 203-1085</a>
-<a href="https://gotlaptopparts.com/ai-setup/help" class="btn bg" target="_blank">Online Help</a>
+<a href="https://gotlaptopparts.com/ai-setup" class="btn bg" target="_blank">Online Help</a>
 <a href="https://gotlaptopparts.com/ai-builds" class="btn bgr" target="_blank">AI-Ready Laptops</a>
 </div>
 </div>
@@ -823,7 +823,7 @@ AI test response:
   "$AIResponse"
 $(if($Warnings.Count -gt 0){"`nNotes:"; $Warnings | ForEach-Object {"  * $_"}})
 
-Help: gotlaptopparts.com/ai-setup/help | (775) 203-1085
+Help: gotlaptopparts.com/ai-setup | (775) 203-1085
 "@ | Out-File -FilePath $ReportPath -Encoding UTF8
 
 # ─────────────────────────────────────────────
@@ -853,7 +853,7 @@ if ($Audience -eq "hobbyist") {
   Write-Host "  Leave us a Google review (takes 30 seconds):" -ForegroundColor Yellow
   Write-Host "  g.page/r/ChIJ9yyohBw_mYAR7JGqywVmGRs/review" -ForegroundColor Cyan
   _gap
-  Write-Host "  Feedback: gotlaptopparts.com/ai-setup/feedback" -ForegroundColor Cyan
+  Write-Host "  Feedback: gotlaptopparts.com/ai-setup" -ForegroundColor Cyan
   Write-Host "  AI-Ready laptops: gotlaptopparts.com/ai-builds" -ForegroundColor Cyan
   _gap
 
@@ -884,7 +884,7 @@ if ($Audience -eq "hobbyist") {
     _gap
   }
   Write-Host "  Google review: g.page/r/ChIJ9yyohBw_mYAR7JGqywVmGRs/review" -ForegroundColor Yellow
-  Write-Host "  Feedback:      gotlaptopparts.com/ai-setup/feedback" -ForegroundColor Cyan
+  Write-Host "  Feedback:      gotlaptopparts.com/ai-setup" -ForegroundColor Cyan
   Write-Host "  AI laptops:    gotlaptopparts.com/ai-builds" -ForegroundColor Cyan
   _gap
 }
