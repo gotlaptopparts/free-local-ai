@@ -1,6 +1,6 @@
-# Free Local AI Setup — Replace $82/month in AI Subscriptions
+# Free Local AI Setup — Private AI on Your Laptop. No Subscription.
 
-> One script. 20 minutes. Private AI on your laptop forever. No subscription. No cloud. No account.
+> One script. 20 minutes. AI running locally on your laptop forever. No cloud. No account. No monthly fee.
 
 **Run on Mac:**
 ```bash
@@ -18,9 +18,9 @@ irm https://gotlaptopparts.com/ai-setup/windows.ps1 | iex
 
 ## What this script does
 
-This script installs a complete private AI stack on any Mac or Windows laptop in about 20 minutes. When it finishes, you have:
+Installs a complete private AI stack on any Mac or Windows laptop in about 20 minutes. When it finishes you have:
 
-- **AI chat** — like ChatGPT, but running locally. Nothing leaves your machine.
+- **AI chat** — like ChatGPT, running locally. Nothing leaves your machine.
 - **AI in your browser** — ask AI about any webpage you're reading
 - **AI for your documents** — drag any PDF or file, ask questions about it
 - **System-wide AI (Mac)** — highlight text in any app, press a shortcut, AI responds
@@ -29,16 +29,19 @@ Everything runs on your laptop. No internet required after setup. No data sent a
 
 ---
 
-## What AI subscriptions this replaces
+## What AI subscriptions this can replace
 
-| Service | Monthly cost | Replaced by |
+Add up what you currently pay for AI tools. Whatever that number is — this replaces it with $0.
+
+| Service | Listed price | Replaced by |
 |---|---|---|
 | ChatGPT Plus | $20/month | LM Studio + local model |
 | Perplexity Pro | $20/month | Page Assist browser extension |
 | GitHub Copilot | $10/month | Continue.dev + Cline in VS Code |
 | Claude Pro | $20/month | AnythingLLM + local model |
 | Grammarly Premium | $12/month | System-wide AI assistant |
-| **Total** | **$82/month** | **$0 forever** |
+
+Prices are each company's listed rates — your actual cost may differ. The point: local AI replaces all of these with $0/month.
 
 ---
 
@@ -77,63 +80,96 @@ You can switch to any of 200+ models inside LM Studio after setup — no technic
 ### Mac
 
 ```bash
-# Open Terminal (press Cmd+Space, type "Terminal", press Enter)
+# Open Terminal (Cmd+Space → type Terminal → Enter)
 curl -s https://gotlaptopparts.com/ai-setup/mac.sh | bash
 ```
 
-The script will ask:
-1. Who is this for? (General use / Developer / Business)
-2. What do you want to name your AI? (optional)
+The script asks:
+1. Who is this for? (Personal / Developer / Business)
+2. What do you want to name your AI? (optional — press Enter to skip)
 
 Then walk away. It handles everything.
 
 ### Windows
 
 ```powershell
-# Open PowerShell (search "PowerShell", right-click, Run as Administrator)
+# Open PowerShell as Administrator
 irm https://gotlaptopparts.com/ai-setup/windows.ps1 | iex
 ```
 
-Same prompts. Same result.
+Same questions. Same result.
 
 ### Requirements
 
-- Mac: macOS 12+ (Sonoma recommended), 6GB+ RAM, 15GB+ free storage
-- Windows: Windows 10/11, 6GB+ RAM, 15GB+ free storage, internet connection
+- **Mac:** macOS 12+, 6GB+ RAM, 15GB+ free storage
+- **Windows:** Windows 10/11, 6GB+ RAM, 15GB+ free storage, internet connection
+
+---
+
+## Security & Privacy
+
+This script is fully open source. Every line is readable in this repository before you run it.
+
+**What this script does:**
+- Installs software via Homebrew (Mac) and winget (Windows) — both verified, signed package managers
+- Downloads AI models from Ollama's official servers only
+- Creates files in standard app locations and your Desktop
+- Opens browser tabs for optional extensions
+
+**What this script never does:**
+- Does not collect your name, email, or any personal data
+- Does not send anything to GotLaptopParts servers — ever
+- Does not phone home or report usage
+- Does not install tracking, analytics, or telemetry of any kind
+- Does not modify system files outside standard app installation paths
+- Does not require an account or login
+
+**Your conversations are private:**
+Once installed, AI runs entirely on your laptop. Your prompts, documents, and conversations never leave your device. No company — including GotLaptopParts — can see what you discuss with your AI.
+
+**To verify before running:**
+```bash
+# Mac — read the script before executing it
+curl -s https://gotlaptopparts.com/ai-setup/mac.sh > setup.sh
+cat setup.sh   # read every line
+bash setup.sh  # then run it
+```
+
+The tools we install (Ollama, LM Studio, Jan.ai, AnythingLLM) are independent open-source projects with their own privacy policies. Links: [Ollama](https://ollama.com/privacy) · [LM Studio](https://lmstudio.ai/privacy) · [Jan.ai](https://jan.ai/privacy) · [AnythingLLM](https://anythingllm.com/privacy).
 
 ---
 
 ## Frequently asked questions
 
 **Is this script safe to run?**
-Yes. The code is fully open source — you're reading it right now. It only installs free, widely-used tools (Ollama, LM Studio, Jan.ai, AnythingLLM) via Homebrew (Mac) or winget (Windows). It does not collect data, does not phone home, and does not modify system files outside standard app installation paths.
+The code is fully open source — read it before running. It only installs free, widely-used tools via verified package managers. It does not collect data, does not phone home, and does not modify system files outside standard paths.
 
 **Does my data stay private?**
 100%. Everything runs on your laptop. Your prompts, documents, and conversations never leave your machine. There are no accounts, no servers, no telemetry.
 
 **Does it work without internet after setup?**
-Yes. Once the model is downloaded, AI works completely offline. Works on planes, in remote areas, anywhere.
+Yes. Once the model is downloaded, AI works completely offline — on planes, in remote areas, anywhere.
 
 **What if something goes wrong?**
-The script handles errors gracefully. If a download fails it retries automatically. If your storage is too low it cleans up and tries a smaller model. If you get stuck, see [gotlaptopparts.com/ai-setup/help](https://www.gotlaptopparts.com/ai-setup/help) or call (775) 203-1085.
+The script handles errors gracefully — retries downloads, auto-cleans storage, falls back to smaller models. If you get stuck: [gotlaptopparts.com/ai-setup/help](https://www.gotlaptopparts.com/ai-setup/help) or call (775) 203-1085.
 
 **Can I choose a different AI model?**
-Yes. Open LM Studio → click Discover → browse 200+ models → download any with one click. No command line needed.
+Yes. Open LM Studio → Discover → browse 200+ models → download any with one click. No command line needed.
 
 **Does it work on Apple Silicon (M1/M2/M3/M4)?**
-Yes — and it works best on Apple Silicon. Metal GPU acceleration is automatic. A MacBook Pro M2 with 16GB runs Llama 3.1 8B at 30–80 tokens per second.
+Yes — and it works best on Apple Silicon. Metal GPU acceleration is automatic.
 
 **What about NVIDIA GPU laptops?**
-The script automatically detects your NVIDIA GPU, updates drivers, and configures Ollama to use CUDA. Your GPU VRAM determines which models you can run at full speed.
+The script detects your NVIDIA GPU, updates drivers, and configures Ollama to use CUDA automatically.
 
 **Can I uninstall everything?**
 Yes. See the [Uninstall Guide](https://www.gotlaptopparts.com/ai-setup/uninstall).
 
-**How do I update to a newer model?**
+**How do I update to a newer AI model?**
 Open LM Studio → Discover → download the new model. Or run `ollama pull [model-name]` in Terminal.
 
 **Is this affiliated with Ollama, LM Studio, or any AI company?**
-No. This script is built and maintained by [GotLaptopParts.com](https://www.gotlaptopparts.com) (Laptop Mate LLC, Reno NV). We sell refurbished laptops and we believe everyone should have access to free, private AI. All tools installed are independent open-source projects.
+No. Built and maintained by [GotLaptopParts.com](https://www.gotlaptopparts.com) (Laptop Mate LLC, Reno NV). All tools installed are independent open-source projects.
 
 ---
 
@@ -145,9 +181,7 @@ Developer mode installs the full coding stack:
 Ollama → LM Studio → Jan.ai → AnythingLLM → VS Code → Continue.dev → Cline
 ```
 
-Continue.dev is pre-configured to use your local model via Ollama API at `localhost:11434`. Drop-in replacement for GitHub Copilot. Free. Private. No rate limits.
-
-Cline gives you an agentic coding assistant that can read, write, and execute code across your project.
+Continue.dev is pre-configured to use your local model via Ollama at `localhost:11434`. Drop-in replacement for GitHub Copilot — free, private, no rate limits. Cline gives you an agentic coding assistant that can read, write, and execute code across your project.
 
 ---
 
@@ -161,39 +195,19 @@ We sell refurbished laptops with everything pre-configured, model pre-downloaded
 
 ## Contributing
 
-Found a bug? Open an issue. Have a better model recommendation? Submit a PR. Want to add a new tool to the stack? We welcome contributions.
+Found a bug? Open an issue. Better model recommendation? Submit a PR.
 
 When contributing:
 - Test on real hardware before submitting
 - Keep hobbyist output simple — no technical jargon shown to general users
-- Maintain the fallback chain — the script must always find a working config
-- Do not add anything that phones home or collects data
-
----
-
-## Security
-
-This script is open source so you can audit every line. Key facts:
-
-- Installs only via Homebrew and winget (verified package managers with signed packages)
-- Downloads models only from Ollama's official servers
-- Never connects to GotLaptopParts servers during execution
-- Never collects personal data
-- Never modifies files outside standard app installation paths
-
-To verify the script before running:
-```bash
-# Mac — download and read before running
-curl -s https://gotlaptopparts.com/ai-setup/mac.sh > setup.sh
-cat setup.sh  # read it
-bash setup.sh  # then run it
-```
+- Maintain the fallback chain — script must always find a working config
+- Never add anything that phones home or collects data
 
 ---
 
 ## License
 
-MIT License — free to use, modify, and distribute. Attribution appreciated.
+MIT — free to use, modify, and distribute. Attribution appreciated.
 
 ---
 
@@ -204,7 +218,7 @@ MIT License — free to use, modify, and distribute. Attribution appreciated.
 We sell refurbished laptop parts and complete devices. We built this script because we believe everyone deserves private, free AI — regardless of whether they buy from us.
 
 - Website: [gotlaptopparts.com](https://www.gotlaptopparts.com)
-- AI Setup Page: [gotlaptopparts.com/ai-setup](https://www.gotlaptopparts.com/ai-setup)
+- AI Setup: [gotlaptopparts.com/ai-setup](https://www.gotlaptopparts.com/ai-setup)
 - AI-Ready Laptops: [gotlaptopparts.com/ai-builds](https://www.gotlaptopparts.com/ai-builds)
 - Used Laptops: [onlineusedlaptops.com](https://www.onlineusedlaptops.com)
 - Phone: (775) 203-1085
