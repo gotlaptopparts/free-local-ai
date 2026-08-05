@@ -267,6 +267,27 @@ esac
   _ok "Found the right AI for your Mac"
 
 # ─────────────────────────────────────────────
+# DOWNLOAD SUMMARY — show before anything downloads
+# ─────────────────────────────────────────────
+_gap
+echo -e "  ${W}Here's what this script will download:${N}"
+_gap
+echo -e "  ${C}• Ollama${N}         — AI engine (~200MB)"
+echo -e "  ${C}• LM Studio${N}      — AI chat app (~300MB)"
+echo -e "  ${C}• Jan.ai${N}         — offline AI chat (~200MB)"
+echo -e "  ${C}• AnythingLLM${N}    — chat with your files (~300MB)"
+echo -e "  ${C}• ${MODEL_DISPLAY}${N}  — AI brain (${MODEL_SIZE}GB)"
+[[ "$AUDIENCE" == "developer" ]] && \
+  echo -e "  ${C}• VS Code + extensions + embedding model${N}  (~500MB extra)"
+_gap
+TOTAL_EST=$((MODEL_SIZE + 1))
+echo -e "  ${W}Total: ~${TOTAL_EST}GB download. You have ${FREE_DISK}GB free.${N}"
+_gap
+if ! ask "Ready to start? Your internet connection will be used."; then
+  stop "Setup cancelled."
+fi
+
+# ─────────────────────────────────────────────
 # STEP 4 — NAME YOUR AI (hobbyist only)
 # ─────────────────────────────────────────────
 AI_NAME="Aria"
