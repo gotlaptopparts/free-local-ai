@@ -1063,7 +1063,7 @@ h1{font-size:clamp(28px,5vw,44px);font-weight:900;line-height:1.15;margin-bottom
 <div class="card-eyebrow">Want a different AI?</div>
 <div class="card-title">Switch AI models anytime</div>
 <div class="card-desc">Your setup installed the best AI for your Mac's memory. But there are 200+ free models — each good at different things. Download any of them with one click.</div>
-<div class="card-how"><strong>How to switch:</strong> Open <strong>LM Studio</strong> → click <strong>Discover</strong> → search any model → click <strong>Download</strong>. No technical knowledge needed.</div>
+<div class="card-how"><strong>How to use:</strong> LM Studio opens automatically after install. Click <strong>"Select a model to load"</strong> at the top → your model is already downloaded → select it → start chatting. Cleanest chat interface available.</div>
 </div>
 </div>
 
@@ -1125,9 +1125,10 @@ ${AI_NAME} runs locally. No subscriptions. No data leaves your Mac.
 </html>
 WEOF
 
-# Open welcome guide + AnythingLLM automatically
+# Open welcome guide + apps automatically
 open "$WELCOME" 2>/dev/null || true
 [ "$ALLM_OK" = true ] && open -a "AnythingLLM" 2>/dev/null || true
+[ "$LMS_OK" = true ] && open -a "LM Studio" 2>/dev/null || true
 
 # Save verification report
 REPORT="$HOME/Desktop/${AI_NAME}_Setup_$(date '+%Y%m%d').txt"
