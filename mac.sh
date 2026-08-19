@@ -648,7 +648,53 @@ EMBEDDING_ENGINE=native
 VECTOR_DB=lancedb
 AEOF
 fi
-_ok "AnythingLLM configured → Ollama + $MODEL pre-selected" 
+
+# ── AnythingLLM: pre-seed default workspace + system prompt into SQLite DB ──
+# sqlite3 is built into macOS (no install needed). DB is created by AnythingLLM on first
+# launch — but we can pre-create it with the correct schema so the workspace exists
+# immediately. AnythingLLM will open it, see the workspace, and use it without setup.
+ALLM_DB_DIR="$ALLM_STORAGE/storage"
+ALLM_DB="$ALLM_DB_DIR/anythingllm.db"
+mkdir -p "$ALLM_DB_DIR"
+if [ ! -f "$ALLM_DB" ] && command -v sqlite3 &>/dev/null; then
+  SLUG=$(echo "$AI_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g')
+  NOW=$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")
+  sqlite3 "$ALLM_DB" << SQEOF
+CREATE TABLE IF NOT EXISTS workspaces (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  slug TEXT UNIQUE NOT NULL,
+  vectorTag TEXT,
+  createdAt DATETIME NOT NULL,
+  openAiTemp REAL,
+  openAiHistory INTEGER NOT NULL DEFAULT 20,
+  lastUpdatedAt DATETIME NOT NULL,
+  openAiPrompt TEXT,
+  similarityThreshold REAL DEFAULT 0.25,
+  chatProvider TEXT,
+  chatModel TEXT,
+  topN INTEGER DEFAULT 4,
+  chatMode TEXT DEFAULT 'chat',
+  pfpFilename TEXT,
+  agentProvider TEXT,
+  agentModel TEXT,
+  queryRefusalResponse TEXT,
+  vectorSearchMode TEXT DEFAULT 'default'
+);
+INSERT OR IGNORE INTO workspaces (name, slug, createdAt, lastUpdatedAt, openAiPrompt, chatMode)
+VALUES (
+  '$AI_NAME',
+  '$SLUG',
+  '$NOW',
+  '$NOW',
+  '$SYS_PROMPT',
+  'chat'
+);
+SQEOF
+  _ok "AnythingLLM workspace '$AI_NAME' pre-created — opens ready to chat"
+else
+  _ok "AnythingLLM configured → Ollama + $MODEL pre-selected"
+fi
 
 # Chip-specific Ollama performance tuning
 # OLLAMA_FLASH_ATTENTION: always on (saves ~20% VRAM on all chips)
