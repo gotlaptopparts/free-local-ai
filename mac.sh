@@ -1021,7 +1021,8 @@ h1{font-size:clamp(28px,5vw,44px);font-weight:900;line-height:1.15;margin-bottom
 <div class="card-eyebrow">Chat AI</div>
 <div class="card-title">Talk to ${AI_NAME} — like ChatGPT, but free</div>
 <div class="card-desc">Ask anything. Get help writing emails, summarizing things, answering questions, brainstorming, translating. ${AI_NAME} never judges, never tires, and never shares what you type.</div>
-<div class="card-how"><strong>How to open:</strong> Double-click <strong>"Start ${AI_NAME}"</strong> on your Desktop. Type your question. Press Enter.</div>
+<div class="card-how"><strong>How to open:</strong> Double-click <strong>"Start ${AI_NAME}"</strong> on your Desktop, or open <strong>Jan</strong> or <strong>LM Studio</strong> from Applications — all three chat apps are installed and pre-connected.</div>
+<div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap"><a href="jan://" class="open-btn">Open Jan</a><a href="lmstudio://" class="open-btn" style="background:#16a34a">Open LM Studio</a></div>
 </div>
 </div>
 
@@ -1041,7 +1042,8 @@ h1{font-size:clamp(28px,5vw,44px);font-weight:900;line-height:1.15;margin-bottom
 <div class="card-eyebrow">AI Workspace — Projects, Files &amp; MCP</div>
 <div class="card-title">Your private AI workspace</div>
 <div class="card-desc">AnythingLLM is where you do real work with ${AI_NAME}. Create separate projects (like folders) for different topics or clients. Drag in PDFs, Word docs, spreadsheets, or paste URLs — ${AI_NAME} reads them and answers questions. Connect MCP tools to let your AI take actions: search the web, read your calendar, manage files. Everything stays local — no cloud, no subscriptions.</div>
-<div class="card-how"><strong>How to open:</strong> Find <strong>AnythingLLM</strong> in your Applications folder. Create a workspace → drag in your files → start a project. To connect MCP tools: open AnythingLLM → Settings → Agent Configuration → MCP Servers.</div>
+<div class="card-how"><strong>How to open:</strong> Find <strong>AnythingLLM</strong> in your Applications folder. Your workspace is pre-created — just start chatting. Drag in files to use as context. Connect MCP tools via Settings → Agent Configuration → MCP Servers.</div>
+<div style="margin-top:12px"><a href="anythingllm://" class="open-btn">Open AnythingLLM</a></div>
 </div>
 </div>
 
