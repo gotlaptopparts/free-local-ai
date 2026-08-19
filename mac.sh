@@ -844,7 +844,7 @@ for attempt in 1 2 3; do
   [ $attempt -lt 3 ] && sleep 15
 done
 
-[ -z "$AI_RESPONSE" ] && add_warn "${AI_NAME} installed but test response failed — try opening LM Studio"
+[ -z "$AI_RESPONSE" ] && add_warn "${AI_NAME} installed but test response failed — open AnythingLLM from Applications to chat"
 
 # GPU check
 sleep 2
