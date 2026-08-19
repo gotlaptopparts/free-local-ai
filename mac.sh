@@ -876,15 +876,16 @@ LEOF
 chmod +x "$APP_DIR/Contents/MacOS/launcher"
 
 # Info.plist — makes macOS treat it as a proper app
+AI_NAME_LOWER=$(echo "$AI_NAME" | tr '[:upper:]' '[:lower:]')
 cat > "$APP_DIR/Contents/Info.plist" << PLEOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
   <key>CFBundleExecutable</key><string>launcher</string>
-  <key>CFBundleIdentifier</key><string>com.gotlaptopparts.${AI_NAME,,}</string>
-  <key>CFBundleName</key><string>Start ${AI_NAME}</string>
-  <key>CFBundleDisplayName</key><string>Start ${AI_NAME}</string>
+  <key>CFBundleIdentifier</key><string>com.gotlaptopparts.$AI_NAME_LOWER</string>
+  <key>CFBundleName</key><string>Start $AI_NAME</string>
+  <key>CFBundleDisplayName</key><string>Start $AI_NAME</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleVersion</key><string>1.0</string>
   <key>LSMinimumSystemVersion</key><string>12.0</string>
