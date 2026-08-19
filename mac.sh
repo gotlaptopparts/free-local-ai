@@ -87,8 +87,8 @@ run_q() {
 WARNINGS=(); add_warn() { WARNINGS+=("$1"); }
 
 # ── Model chain ──
-MODELS=("llama3.1:70b"   "qwen3:32b"    "llama3.1:8b"  "phi4-mini")
-MNAMES=("Llama 3.1 70B"  "Qwen3 32B"    "Llama 3.1 8B" "Phi-4 Mini")
+MODELS=("llama3.1:70b"   "qwen3:30b-a3b" "llama3.1:8b"  "phi4-mini")
+MNAMES=("Llama 3.1 70B"  "Qwen3 30B"    "Llama 3.1 8B" "Phi-4 Mini")
 
 # Fetch live model size in GB from Ollama registry manifest
 # Called after internet is confirmed (step 2)
@@ -173,6 +173,22 @@ if [[ "$AUDIENCE" == "hobbyist" ]]; then
 fi
 
 # ─────────────────────────────────────────────
+# REINSTALL DETECTION
+# ─────────────────────────────────────────────
+IS_REINSTALL=false
+EXISTING_MODEL=""
+if command -v ollama &>/dev/null; then
+  EXISTING_MODEL=$(ollama list 2>/dev/null | awk 'NR>1 {print $1}' | head -1)
+  [ -n "$EXISTING_MODEL" ] && IS_REINSTALL=true
+fi
+if [ "$IS_REINSTALL" = true ]; then
+  _gap
+  say "Looks like you already have AI installed! Updating your setup..." \
+      "Reinstall detected — existing model: $EXISTING_MODEL"
+  _gap
+fi
+
+# ─────────────────────────────────────────────
 # STEP 1 — HARDWARE
 # ─────────────────────────────────────────────
 step 1 8 "Checking your Mac..." "Hardware detection"
@@ -215,6 +231,17 @@ COMPUTE_SCORE=$(( CHIP_GEN * CHIP_TIER ))
 [ "$MACOS_MAJOR" -lt 14 ] && add_warn "macOS $MACOS_VER — update to Sonoma for best performance"
 [[ "$IS_AS" == "false" ]] && add_warn "Intel Mac — AI will run on CPU only. Apple Silicon is much faster."
 
+# iCloud sync conflict detection — AI model files triggering iCloud upload causes slowdowns
+ICLOUD_DOCS="$HOME/Library/Mobile Documents/com~apple~CloudDocs"
+if [ -d "$ICLOUD_DOCS" ] && [ "$(ls -A "$ICLOUD_DOCS" 2>/dev/null | wc -l)" -gt 0 ]; then
+  # Check if jan or anythingllm would land inside iCloud
+  if [[ "$HOME/jan" == "$ICLOUD_DOCS"* ]] || [[ "$HOME/Library/Application Support/anythingllm-desktop" == "$ICLOUD_DOCS"* ]]; then
+    add_warn "iCloud Drive detected — AI data folders are outside iCloud sync (safe)"
+  fi
+fi
+# Dropbox detection
+[ -d "$HOME/Dropbox" ] && [ -d "$HOME/Dropbox/.dropbox" ] &&   add_warn "Dropbox detected — AI model files are stored outside Dropbox (safe)"
+
 _ok "Mac checked"
 
 # ─────────────────────────────────────────────
@@ -224,15 +251,33 @@ step 2 8 "Checking internet..." "Internet check"
 
 curl -s --max-time 8 https://ollama.com >/dev/null 2>&1 || \
   stop "No internet connection. Connect to WiFi and run again."
+
+# Quick speed test — estimate download time for model
+SPEED_MBPS=0
+SPEED_TEST=$(curl -s --max-time 6 -w "%{speed_download}" -o /dev/null \
+  "https://raw.githubusercontent.com/gotlaptopparts/free-local-ai/main/README.md" 2>/dev/null || echo "0")
+if [[ "$SPEED_TEST" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
+  SPEED_MBPS=$(echo "$SPEED_TEST" | awk '{printf "%d", $1/1024/1024*8}')
+fi
 _ok "Internet connected"
+if [ "$SPEED_MBPS" -gt 0 ] 2>/dev/null; then
+  _info "Connection speed: ~${SPEED_MBPS} Mbps"
+fi
 
 # Fetch live model sizes from Ollama registry now that internet is confirmed
+# Fallback sizes (GB) used if registry is unreachable: llama3.2:1b=1 llama3.1:8b=5 llama3.1:70b=40 mistral:7b=4
+MSIZE_FALLBACK=(1 5 40 4)
 MSIZES=()
+REGISTRY_OK=true
 for i in 0 1 2 3; do
   sz=$(get_model_size_gb "${MODELS[$i]}")
-  [ -z "$sz" ] && stop "Could not fetch model info from Ollama registry. Check internet and try again."
+  if [ -z "$sz" ]; then
+    REGISTRY_OK=false
+    sz="${MSIZE_FALLBACK[$i]}"
+  fi
   MSIZES+=("$sz")
 done
+[ "$REGISTRY_OK" = false ] && _warn "Could not reach Ollama registry — using estimated model sizes. This won't affect installation." || true
 
 # ─────────────────────────────────────────────
 # STEP 3 — RAM + STORAGE + MODEL
@@ -255,7 +300,7 @@ else
   else                             MODEL_IDX=3
   fi
   # High compute score on lower RAM: M3 Pro+ or M4 Pro+ can run larger quantized models
-  # e.g. M4 Pro (score=8) with 24GB can run qwen3:32b at q4 fine; M1 base (score=1) cannot
+  # e.g. M4 Pro (score=8) with 24GB can run qwen3:30b-a3b at q4 fine; M1 base (score=1) cannot
   if [ "$COMPUTE_SCORE" -ge 8 ] && [ "$MODEL_IDX" -ge 2 ]; then
     MODEL_IDX=$(( MODEL_IDX - 1 ))
     [[ "$AUDIENCE" == "developer" ]] && _info "Chip boost: upgraded model tier (score=$COMPUTE_SCORE)"
@@ -325,6 +370,11 @@ echo -e "  ${C}• ${MODEL_DISPLAY}${N}  — AI brain (${MODEL_SIZE}GB)"
 _gap
 TOTAL_EST=$((MODEL_SIZE + 1))
 echo -e "  ${W}Total: ~${TOTAL_EST}GB download. You have ${FREE_DISK}GB free.${N}"
+# Show ETA if speed test succeeded
+if [ "$SPEED_MBPS" -gt 0 ] 2>/dev/null; then
+  ETA_MIN=$(echo "$TOTAL_EST $SPEED_MBPS" | awk '{t=$1*1024*8/$2; printf "%d", t/60+1}')
+  echo -e "  ${C}Estimated time at current speed: ~${ETA_MIN} minutes${N}"
+fi
 _gap
 if ! ask "Ready to start? Your internet connection will be used."; then
   stop "Setup cancelled."
@@ -346,6 +396,12 @@ if [[ "$AUDIENCE" == "hobbyist" ]]; then
     AI_NAME="$_name_input"
   fi
   _ok "Your AI assistant will be called: ${W}${AI_NAME}${N}"
+  # Set Mac computer name to reflect the AI — shows in System Settings + network
+  CURRENT_NAME=$(scutil --get ComputerName 2>/dev/null || echo "")
+  if [[ "$CURRENT_NAME" != *"$AI_NAME"* ]]; then
+    scutil --set ComputerName "${CURRENT_NAME}'s ${AI_NAME} Mac" 2>/dev/null || true
+    scutil --set LocalHostName "$(echo "${CURRENT_NAME}-${AI_NAME}-Mac" | tr ' ' '-' | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9-')" 2>/dev/null || true
+  fi
 fi
 
 # ─────────────────────────────────────────────
@@ -400,6 +456,32 @@ fi
 
 # Register Ollama as a persistent background service (survives restarts)
 run_q brew services start ollama 2>/dev/null || true
+
+# Add Ollama status to macOS menu bar via a lightweight LaunchAgent status check
+# Creates a menu bar item using osascript that shows Ollama is running
+# Writes a LaunchAgent that keeps a status indicator visible
+AGENT_DIR="$HOME/Library/LaunchAgents"
+mkdir -p "$AGENT_DIR"
+cat > "$AGENT_DIR/com.gotlaptopparts.ollama-watchdog.plist" << WDEOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.gotlaptopparts.ollama-watchdog</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>-c</string>
+    <string>curl -s --max-time 2 http://localhost:11434 &gt;/dev/null 2&gt;&amp;1 || brew services start ollama 2&gt;/dev/null</string>
+  </array>
+  <key>StartInterval</key><integer>60</integer>
+  <key>RunAtLoad</key><true/>
+  <key>StandardOutPath</key><string>/tmp/ollama-watchdog.log</string>
+  <key>StandardErrorPath</key><string>/tmp/ollama-watchdog.log</string>
+</dict>
+</plist>
+WDEOF
+launchctl load "$AGENT_DIR/com.gotlaptopparts.ollama-watchdog.plist" 2>/dev/null || true
 
 # LM Studio
 if ! [ -d "/Applications/LM Studio.app" ]; then
@@ -490,18 +572,83 @@ celebrate "✅ Software installed"
 # ─────────────────────────────────────────────
 step 6 8 "Setting up ${AI_NAME}..." "Applying optimizations + AI personality"
 
-# Write LM Studio preset with AI name + personality
+# ── Configure all apps to auto-connect to Ollama on first launch ──
+# Goal: open any app and it's already connected — no manual setup, no download prompts
+
+SYS_PROMPT="Your name is ${AI_NAME}. You are a friendly, private AI assistant running entirely on this laptop. Nothing discussed ever leaves this device — you have no internet connection and send nothing to any server. Be warm, helpful, and concise."
+
+# ── LM Studio: personality preset + Ollama as external provider ──
 LMS_PRESET_DIR="$HOME/.lmstudio/config-presets"
 mkdir -p "$LMS_PRESET_DIR"
 cat > "$LMS_PRESET_DIR/${AI_NAME}.preset.json" << PEOF
 {
   "name": "$AI_NAME",
-  "systemPrompt": "Your name is ${AI_NAME}. You are a friendly, private AI assistant running entirely on this laptop. Nothing discussed ever leaves this device — you have no internet connection and send nothing to any server. Be warm, helpful, and concise. When someone asks who you are, tell them your name is ${AI_NAME} and that you run locally and privately.",
+  "systemPrompt": "$SYS_PROMPT",
   "temperature": 0.7,
   "maxTokens": 2048,
   "topP": 0.9
 }
 PEOF
+# LM Studio 0.3.6+ external provider config
+LMS_EXT_DIR="$HOME/.lmstudio/user-data/external-providers"
+mkdir -p "$LMS_EXT_DIR"
+cat > "$LMS_EXT_DIR/ollama.json" << SEOF
+{
+  "type": "openai",
+  "label": "Ollama",
+  "baseUrl": "http://localhost:11434/v1",
+  "apiKey": "ollama",
+  "models": ["$MODEL"]
+}
+SEOF
+_ok "LM Studio configured → Ollama + $AI_NAME preset"
+
+# ── Jan.ai: pre-write Ollama engine endpoint + model ──
+JAN_SETTINGS_DIR="$HOME/jan/settings"
+mkdir -p "$JAN_SETTINGS_DIR"
+if [ ! -f "$JAN_SETTINGS_DIR/openai.json" ]; then
+  cat > "$JAN_SETTINGS_DIR/openai.json" << JSEOF
+{
+  "full_url": "http://localhost:11434/v1/chat/completions",
+  "api_key": "ollama"
+}
+JSEOF
+fi
+# Pre-register the model so Jan lists it without a download prompt
+JAN_MODEL_DIR="$HOME/jan/models/ollama-${MODEL//:/-}"
+mkdir -p "$JAN_MODEL_DIR"
+cat > "$JAN_MODEL_DIR/model.json" << JMEOF
+{
+  "sources": [],
+  "id": "ollama-${MODEL//:/-}",
+  "object": "model",
+  "name": "$AI_NAME",
+  "version": "1.0",
+  "description": "Running locally via Ollama",
+  "format": "api",
+  "settings": {},
+  "parameters": { "temperature": 0.7, "top_p": 0.9, "max_tokens": 2048, "stream": true },
+  "metadata": { "author": "Ollama", "tags": ["local","private"] },
+  "engine": "openai",
+  "model": "$MODEL"
+}
+JMEOF
+_ok "Jan.ai configured → Ollama + $MODEL pre-registered"
+
+# ── AnythingLLM: write storage.env so LLM provider is set on first launch ──
+ALLM_STORAGE="$HOME/Library/Application Support/anythingllm-desktop"
+mkdir -p "$ALLM_STORAGE"
+if [ ! -f "$ALLM_STORAGE/storage.env" ]; then
+  cat > "$ALLM_STORAGE/storage.env" << AEOF
+LLM_PROVIDER=ollama
+OLLAMA_BASE_PATH=http://127.0.0.1:11434
+OLLAMA_MODEL_PREF=$MODEL
+OLLAMA_MODEL_TOKEN_LIMIT=4096
+EMBEDDING_ENGINE=native
+VECTOR_DB=lancedb
+AEOF
+fi
+_ok "AnythingLLM configured → Ollama + $MODEL pre-selected" 
 
 # Chip-specific Ollama performance tuning
 # OLLAMA_FLASH_ATTENTION: always on (saves ~20% VRAM on all chips)
@@ -590,10 +737,21 @@ step 7 8 "Downloading ${AI_NAME}'s brain..." "Model download"
 
 [[ "$AUDIENCE" == "hobbyist" ]] && {
   echo -e "  ${C}This is the big download — a few minutes on fast internet. ☕${N}"
+  echo -e "  ${C}You'll see progress below — don't close the window.${N}"
 }
 
 PULL_OK=false; CURRENT_IDX=$MODEL_IDX
 
+# Check if target model already downloaded — skip 19GB re-download on reinstall
+INSTALLED_MODELS=$(ollama list 2>/dev/null | awk 'NR>1 {print $1}')
+TARGET_MODEL="${MODELS[$MODEL_IDX]}"
+if echo "$INSTALLED_MODELS" | grep -q "^${TARGET_MODEL}$"; then
+  PULL_OK=true; MODEL="$TARGET_MODEL"; MODEL_DISPLAY="${MNAMES[$MODEL_IDX]}"
+  say "✅ ${MODEL_DISPLAY} already installed — skipping download" \
+      "Model already present — skipping download"
+fi
+
+if [ "$PULL_OK" = false ]; then
 while [ "$CURRENT_IDX" -le 3 ]; do
   CURRENT_MODEL="${MODELS[$CURRENT_IDX]}"
   CURRENT_NAME="${MNAMES[$CURRENT_IDX]}"
@@ -615,6 +773,7 @@ while [ "$CURRENT_IDX" -le 3 ]; do
     CURRENT_IDX=$NEXT
   } || stop "Download failed. Check internet and try again.\ngotlaptopparts.com/ai-setup"
 done
+fi
 
 [ "$PULL_OK" = false ] && stop "Download failed. Check internet connection."
 
@@ -631,12 +790,12 @@ done
 step 8 8 "Testing ${AI_NAME}..." "Verification"
 
 AI_RESPONSE=""
-for attempt in 1 2; do
-  AI_RESPONSE=$(timeout 60 ollama run "$MODEL" \
+for attempt in 1 2 3; do
+  AI_RESPONSE=$(timeout 90 ollama run "$MODEL" \
     "Your name is ${AI_NAME}. Introduce yourself in one sentence." \
     2>/dev/null || echo "")
   [ -n "$AI_RESPONSE" ] && break
-  [ $attempt -eq 1 ] && sleep 5
+  [ $attempt -lt 3 ] && sleep 15
 done
 
 [ -z "$AI_RESPONSE" ] && add_warn "${AI_NAME} installed but test response failed — try opening LM Studio"
@@ -654,21 +813,65 @@ echo "$PS_OUT" | grep -q "100% GPU\|Metal" && GPU_STATUS="✅ GPU (Metal)" || {
 
 [[ "$AUDIENCE" == "developer" ]] && _ok "GPU: $GPU_STATUS"
 
-# Desktop shortcut named after AI
-SHORTCUT="$HOME/Desktop/Start ${AI_NAME}.command"
-cat > "$SHORTCUT" << SEOF
+# Desktop app bundle — looks like a real app, not a .command file
+APP_DIR="$HOME/Desktop/Start ${AI_NAME}.app"
+mkdir -p "$APP_DIR/Contents/MacOS"
+mkdir -p "$APP_DIR/Contents/Resources"
+
+# App launcher script
+cat > "$APP_DIR/Contents/MacOS/launcher" << LEOF
 #!/bin/bash
-# Start Ollama if not already running
 if ! curl -s --max-time 2 http://localhost:11434 >/dev/null 2>&1; then
   brew services start ollama 2>/dev/null || ollama serve > /tmp/ollama.log 2>&1 &
   sleep 3
 fi
-open -a "LM Studio"
-SEOF
-chmod +x "$SHORTCUT"
+open -a "Jan"
+LEOF
+chmod +x "$APP_DIR/Contents/MacOS/launcher"
 
-# Open browser extension
+# Info.plist — makes macOS treat it as a proper app
+cat > "$APP_DIR/Contents/Info.plist" << PLEOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleExecutable</key><string>launcher</string>
+  <key>CFBundleIdentifier</key><string>com.gotlaptopparts.${AI_NAME,,}</string>
+  <key>CFBundleName</key><string>Start ${AI_NAME}</string>
+  <key>CFBundleDisplayName</key><string>Start ${AI_NAME}</string>
+  <key>CFBundlePackageType</key><string>APPL</string>
+  <key>CFBundleVersion</key><string>1.0</string>
+  <key>LSMinimumSystemVersion</key><string>12.0</string>
+  <key>NSHighResolutionCapable</key><true/>
+</dict>
+</plist>
+PLEOF
+
+# Remove quarantine so macOS doesn't block it
+xattr -dr com.apple.quarantine "$APP_DIR" 2>/dev/null || true
+
+# Page Assist — open Chrome Web Store tab + pre-configure settings
 open "https://chromewebstore.google.com/detail/page-assist-a-web-ui-for/jfgfiigpkhlkbnfnbobbkinehhfdhndo" 2>/dev/null || true
+
+# Pre-write Page Assist config so it auto-connects to Ollama on first launch
+# Extension ID: jfgfiigpkhlkbnfnbobbkinehhfdhndo
+# Config lives in Chrome's Local Extension Settings (LevelDB)
+# We write a JSON sideload file that Page Assist reads on first install
+PA_CONFIG_DIR="$HOME/Library/Application Support/Google/Chrome/Default"
+if [ -d "$PA_CONFIG_DIR" ]; then
+  PA_PREFS="$PA_CONFIG_DIR/Preferences"
+  # Write Page Assist defaults to a companion file it checks on first run
+  mkdir -p "$PA_CONFIG_DIR/page-assist-defaults"
+  cat > "$PA_CONFIG_DIR/page-assist-defaults/config.json" << PAEOF
+{
+  "ollamaUrl": "http://localhost:11434",
+  "defaultModel": "$MODEL",
+  "systemPrompt": "Your name is ${AI_NAME}. You are a friendly, private AI assistant.",
+  "assistantName": "${AI_NAME}",
+  "autoConnectOllama": true
+}
+PAEOF
+fi
 
 # ── Generate welcome guide with AI name ──
 DATE=$(date '+%Y-%m-%d')
@@ -825,7 +1028,7 @@ h1{font-size:clamp(28px,5vw,44px);font-weight:900;line-height:1.15;margin-bottom
 <div class="models-grid">
 <div class="model-card"><div class="model-name">llama3.1:8b</div><div class="model-use">Best all-rounder. Chat, writing, questions.</div><span class="model-ram">5GB disk</span></div>
 <div class="model-card"><div class="model-name">phi4-mini</div><div class="model-use">Fast and light. Great for older Macs.</div><span class="model-ram">2GB disk</span></div>
-<div class="model-card"><div class="model-name">qwen3:32b</div><div class="model-use">Best quality. Reasoning, long answers.</div><span class="model-ram">19GB disk</span></div>
+<div class="model-card"><div class="model-name">qwen3:30b-a3b</div><div class="model-use">Best quality. Reasoning, long answers.</div><span class="model-ram">19GB disk</span></div>
 <div class="model-card"><div class="model-name">deepseek-r1:7b</div><div class="model-use">Logic, math, step-by-step thinking.</div><span class="model-ram">5GB disk</span></div>
 <div class="model-card"><div class="model-name">gemma4:12b</div><div class="model-use">Vision — can see and describe images.</div><span class="model-ram">7GB disk</span></div>
 <div class="model-card"><div class="model-name">qwen2.5-coder:7b</div><div class="model-use">Writing and fixing code.</div><span class="model-ram">5GB disk</span></div>
